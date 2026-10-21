@@ -1,4 +1,4 @@
-# Customer Feedback Root Cause Analysis — an AI Workflow
+# Voice of Customer: Root Cause Analysis — an AI Workflow
 
 **Turn raw customer feedback (support tickets, survey responses, app reviews and comments) into an evidence-backed report of the main problems, their root causes, and product and operations fixes.**
 
