@@ -1,0 +1,1738 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Feedback RCA Dashboard</title>
+<script>
+  // Apply the theme before first paint to avoid a flash: ?theme=light|dark wins, then the saved choice, then the OS setting.
+  (() => {
+    let t = new URLSearchParams(location.search).get("theme");
+    if (t !== "light" && t !== "dark") { try { t = localStorage.getItem("rca-theme"); } catch (e) {} }
+    if (t === "light" || t === "dark") document.documentElement.dataset.theme = t;
+  })();
+</script>
+<style>
+:root {
+  color-scheme: light;
+  --page: #f4f4f1; --surface: #fcfcfb; --surface-2: #f0efec; --border: rgba(11,11,11,.10);
+  --ink: #0b0b0b; --ink-2: #52514e; --muted: #898781; --grid: #e1e0d9; --baseline: #c3c2b7;
+  --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --s5: #e87ba4; --s6: #008300; --s7: #6250d6; --s8: #e34948;
+  --seq: #2a78d6; --bar-neutral: #6d6c67;
+  --good: #0ca30c; --good-ink: #006300; --good-soft: #e3f3e3;
+  --warn: #fab219; --warn-ink: #7a5200; --warn-soft: #fdf1d6;
+  --crit: #d03b3b; --crit-ink: #a12a2a; --crit-soft: #fbe7e7;
+  --sec-sum: #2a78d6; --sec-prob: #6250d6; --sec-rc: #c43f73; --sec-sol: #00803a;
+  --sec-sum-soft: #e6effb; --sec-prob-soft: #ecebfb; --sec-rc-soft: #f9e8ef; --sec-sol-soft: #e2f3e8;
+  --product-ink: #4a3aa7; --product-soft: #ecebfb; --ops-ink: #0f6b62; --ops-soft: #def3ef;
+  --radius: 12px; --shadow: 0 1px 2px rgba(16,24,40,.05);
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    color-scheme: dark;
+    --page: #0d0d0d; --surface: #1a1a19; --surface-2: #242422; --border: rgba(255,255,255,.10);
+    --ink: #f0efec; --ink-2: #c3c2b7; --muted: #898781; --grid: #2c2c2a; --baseline: #383835;
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300; --s7: #9085e9; --s8: #e66767;
+    --seq: #3987e5; --bar-neutral: #a3a299;
+    --good: #0ca30c; --good-ink: #5cc95c; --good-soft: #15291a;
+    --warn: #fab219; --warn-ink: #f2c25a; --warn-soft: #33290f;
+    --crit: #d03b3b; --crit-ink: #f08a8a; --crit-soft: #3a1818;
+    --sec-sum: #5e9ef0; --sec-prob: #9085e9; --sec-rc: #e47aa3; --sec-sol: #3fbf74;
+    --sec-sum-soft: #17243a; --sec-prob-soft: #221f3d; --sec-rc-soft: #361c28; --sec-sol-soft: #13301f;
+    --product-ink: #b3abf3; --product-soft: #26223f; --ops-ink: #6fd3c4; --ops-soft: #12302c;
+    --shadow: none;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0d0d0d; --surface: #1a1a19; --surface-2: #242422; --border: rgba(255,255,255,.10);
+  --ink: #f0efec; --ink-2: #c3c2b7; --muted: #898781; --grid: #2c2c2a; --baseline: #383835;
+  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300; --s7: #9085e9; --s8: #e66767;
+  --seq: #3987e5; --bar-neutral: #a3a299;
+  --good: #0ca30c; --good-ink: #5cc95c; --good-soft: #15291a;
+  --warn: #fab219; --warn-ink: #f2c25a; --warn-soft: #33290f;
+  --crit: #d03b3b; --crit-ink: #f08a8a; --crit-soft: #3a1818;
+  --sec-sum: #5e9ef0; --sec-prob: #9085e9; --sec-rc: #e47aa3; --sec-sol: #3fbf74;
+  --sec-sum-soft: #17243a; --sec-prob-soft: #221f3d; --sec-rc-soft: #361c28; --sec-sol-soft: #13301f;
+  --product-ink: #b3abf3; --product-soft: #26223f; --ops-ink: #6fd3c4; --ops-soft: #12302c;
+  --shadow: none;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: 76px; }
+body { margin: 0; background: var(--page); color: var(--ink); font: 15px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+.wrap { max-width: 1120px; margin: 0 auto; padding: 0 16px; }
+button { font: inherit; font-size: 14px; color: var(--ink); background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 6px 12px; cursor: pointer; }
+button:hover { background: var(--surface-2); }
+button.primary { background: var(--s1); border-color: var(--s1); color: #fff; }
+button.primary:hover { filter: brightness(1.08); background: var(--s1); }
+:focus-visible { outline: 2px solid var(--s1); outline-offset: 2px; }
+
+/* ---------- Header ---------- */
+header.top { position: sticky; top: 0; z-index: 20; background: color-mix(in srgb, var(--surface) 92%, transparent); backdrop-filter: blur(8px); border-bottom: 1px solid var(--border); }
+.topbar { display: flex; align-items: center; gap: 10px; min-height: 60px; flex-wrap: wrap; padding: 8px 0; }
+.brand { font-weight: 700; letter-spacing: -.01em; margin-right: auto; display: flex; align-items: center; gap: 8px; }
+.brand .logo { width: 22px; height: 22px; border-radius: 6px; background: linear-gradient(135deg, var(--sec-prob), var(--sec-rc)); }
+nav.sections { display: flex; gap: 2px; overflow-x: auto; }
+nav.sections a { color: var(--ink-2); text-decoration: none; padding: 6px 10px; border-radius: 8px; font-size: 14px; white-space: nowrap; display: flex; align-items: center; gap: 6px; }
+nav.sections a:hover { background: var(--surface-2); color: var(--ink); }
+nav.sections a i { width: 8px; height: 8px; border-radius: 2px; display: inline-block; }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.seg { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: var(--surface); }
+.seg button { border: 0; border-radius: 0; padding: 6px 10px; background: transparent; color: var(--ink-2); }
+.seg button[aria-pressed="true"] { background: var(--surface-2); color: var(--ink); font-weight: 600; }
+
+/* ---------- Layout ---------- */
+main { padding: 28px 0 64px; }
+section { margin-bottom: 52px; }
+.sec-head { display: flex; align-items: center; gap: 12px; margin-bottom: 6px; }
+.sec-num { width: 34px; height: 34px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 14px; color: #fff; flex: none; }
+.sec-head h2 { margin: 0; font-size: 22px; letter-spacing: -.015em; }
+.sec-sub { color: var(--ink-2); margin: 0 0 18px 46px; font-size: 14px; }
+#summary .sec-num { background: var(--sec-sum); } #summary h2 { color: var(--sec-sum); }
+#problems .sec-num { background: var(--sec-prob); } #problems h2 { color: var(--sec-prob); }
+#root-causes .sec-num { background: var(--sec-rc); } #root-causes h2 { color: var(--sec-rc); }
+#solutions .sec-num { background: var(--sec-sol); } #solutions h2 { color: var(--sec-sol); }
+h1 { font-size: 30px; line-height: 1.2; letter-spacing: -.02em; margin: 0 0 6px; }
+h3 { font-size: 16px; margin: 0; }
+.meta { color: var(--ink-2); font-size: 14px; display: flex; gap: 14px; flex-wrap: wrap; align-items: center; margin-bottom: 22px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px; }
+.card-title { font-size: 14px; font-weight: 650; margin: 0 0 2px; }
+.card-sub { font-size: 13px; color: var(--muted); margin: 0 0 14px; }
+.stack > * + * { margin-top: 14px; }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+@media (max-width: 760px) { .grid-2 { grid-template-columns: 1fr; } }
+.banner { display: none; margin: 0 0 18px; padding: 10px 14px; border-radius: 10px; font-size: 14px; border: 1px solid var(--border); }
+.banner.show { display: block; }
+.banner.info { background: var(--sec-sum-soft); }
+.banner.ok { background: var(--good-soft); }
+.banner.err { background: var(--crit-soft); }
+
+/* ---------- Stat tiles ---------- */
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin-bottom: 14px; }
+.kpi { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; position: relative; overflow: hidden; }
+.kpi::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 4px; background: var(--k, var(--sec-sum)); }
+.kpi .label { color: var(--ink-2); font-size: 13px; }
+.kpi .value { font-size: 30px; font-weight: 650; letter-spacing: -.02em; line-height: 1.2; margin: 2px 0; }
+.kpi .value small { font-size: 16px; color: var(--muted); font-weight: 600; }
+.kpi .note { color: var(--muted); font-size: 12.5px; }
+.meter { height: 6px; border-radius: 3px; background: var(--surface-2); margin-top: 8px; overflow: hidden; }
+.meter > span { display: block; height: 100%; background: var(--k, var(--sec-sum)); border-radius: 3px; }
+
+/* ---------- Headline ---------- */
+.headline-card { border-left: 4px solid var(--sec-sum); }
+.headline { font-size: 18px; line-height: 1.45; font-weight: 600; margin: 0 0 14px; }
+ul.findings { margin: 0; padding: 0; list-style: none; }
+ul.findings li { display: flex; gap: 10px; padding: 8px 0; border-top: 1px solid var(--grid); font-size: 14.5px; }
+ul.findings li:first-child { border-top: 0; }
+ul.findings .fpid { flex: none; }
+
+/* ---------- Chips & badges ---------- */
+.pid { display: inline-flex; align-items: center; justify-content: center; min-width: 32px; height: 22px; padding: 0 6px; border-radius: 6px; background: var(--sec-prob-soft); color: var(--sec-prob); font-size: 12px; font-weight: 750; }
+.chip { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--border); color: var(--ink-2); background: var(--surface); white-space: nowrap; }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.sw { width: 10px; height: 10px; border-radius: 3px; display: inline-block; flex: none; }
+.badge { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 650; padding: 2px 8px; border-radius: 6px; background: var(--surface-2); color: var(--ink-2); white-space: nowrap; }
+.badge.good { background: var(--good-soft); color: var(--good-ink); }
+.badge.warn { background: var(--warn-soft); color: var(--warn-ink); }
+.badge.product { background: var(--product-soft); color: var(--product-ink); }
+.badge.ops { background: var(--ops-soft); color: var(--ops-ink); }
+.conf { display: inline-flex; gap: 3px; vertical-align: middle; }
+.conf i { width: 14px; height: 6px; border-radius: 3px; background: var(--surface-2); border: 1px solid var(--border); }
+.conf i.on { background: var(--ink-2); border-color: var(--ink-2); }
+.tid { font: 12px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; padding: 1px 6px; border-radius: 6px; background: var(--surface-2); color: var(--ink-2); border: 0; }
+button.tid { cursor: pointer; color: var(--s1); }
+button.tid:hover { text-decoration: underline; background: var(--surface-2); }
+
+/* ---------- Bar charts (HTML) ---------- */
+.legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12.5px; color: var(--ink-2); margin-bottom: 12px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.hbars { display: grid; grid-template-columns: minmax(110px, max-content) 1fr; column-gap: 12px; row-gap: 10px; align-items: center; }
+.hbars .lab { font-size: 13.5px; color: var(--ink); display: flex; align-items: center; gap: 8px; min-width: 0; }
+.hbars .lab .t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.track { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.bar { display: flex; gap: 2px; height: 20px; min-width: 2px; }
+.bar > .seg-b { height: 100%; min-width: 3px; cursor: default; }
+.bar > .seg-b:first-child { border-radius: 0; }
+.bar > .seg-b:last-child { border-radius: 0 4px 4px 0; }
+.val { font-size: 13px; color: var(--ink-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.hbars.problems { grid-template-columns: minmax(200px, 340px) 1fr; }
+.hbars.problems .lab { align-items: flex-start; }
+.hbars.problems .lab .t { white-space: normal; overflow: visible; line-height: 1.35; }
+.hbars.problems .lab { cursor: pointer; }
+.hbars.problems .lab:hover .t { text-decoration: underline; }
+.axis-note { font-size: 12px; color: var(--muted); margin-top: 10px; }
+@media (max-width: 560px) { .hbars.problems { grid-template-columns: 1fr; row-gap: 4px; } .hbars.problems .track { margin-bottom: 8px; } }
+details.table-view { margin-top: 12px; }
+details.table-view summary { font-size: 13px; color: var(--ink-2); cursor: pointer; }
+
+/* ---------- Tables ---------- */
+.tbl-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th, td { text-align: left; padding: 10px 10px; border-bottom: 1px solid var(--grid); vertical-align: top; }
+th { color: var(--ink-2); font-weight: 650; font-size: 12.5px; text-transform: uppercase; letter-spacing: .04em; background: var(--surface-2); }
+tbody tr:last-child td { border-bottom: 0; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+.heat td.cell { text-align: center; font-weight: 650; font-variant-numeric: tabular-nums; min-width: 84px; border-left: 2px solid var(--surface); }
+.heat td.cell.zero { color: var(--muted); font-weight: 400; }
+.heat td.rowlab { min-width: 220px; }
+ul.plain { margin: 0; padding-left: 18px; }
+ul.plain li + li { margin-top: 4px; }
+
+/* ---------- Problem cards ---------- */
+.problem-head { display: flex; align-items: flex-start; gap: 10px; flex-wrap: wrap; }
+.problem-head h3 { flex: 1 1 260px; }
+.count { color: var(--ink-2); font-size: 13px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+p.desc { margin: 10px 0 12px; }
+.pcard { border-top: 3px solid var(--sec-prob); }
+.rcard { border-top: 3px solid var(--sec-rc); }
+.scard { border-top: 3px solid var(--sec-sol); }
+blockquote.q { margin: 10px 0 0; padding: 10px 12px; background: var(--surface-2); border-left: 3px solid var(--baseline); border-radius: 0 8px 8px 0; font-size: 14px; }
+blockquote.q.ok { border-left-color: var(--good); }
+blockquote.q.miss { border-left-color: var(--crit); background: var(--crit-soft); }
+.qmeta { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 6px; font-size: 12px; color: var(--ink-2); }
+.vbadge { font-size: 11px; font-weight: 700; padding: 1px 6px; border-radius: 4px; }
+.vbadge.ok { color: var(--good-ink); background: var(--good-soft); }
+.vbadge.miss { color: var(--crit-ink); border: 1px solid var(--crit); }
+details.more { margin-top: 12px; }
+details.more > summary, .whys details > summary { cursor: pointer; color: var(--s1); font-size: 14px; font-weight: 600; }
+
+/* ---------- 5 Whys ---------- */
+.whys { list-style: none; margin: 16px 0 0; padding: 0; }
+.whys li { position: relative; padding: 0 0 18px 38px; }
+.whys li::before { content: attr(data-n); position: absolute; left: 0; top: -1px; width: 26px; height: 26px; border-radius: 50%; background: var(--sec-rc-soft); color: var(--sec-rc); font-size: 12px; font-weight: 800; display: flex; align-items: center; justify-content: center; }
+.whys li:not(:last-child)::after { content: ""; position: absolute; left: 12.5px; top: 28px; bottom: 2px; width: 1px; background: var(--grid); }
+.whys .why { color: var(--ink-2); font-size: 13px; font-weight: 650; }
+.whys .because { margin: 2px 0 0; }
+.whys .stop { color: var(--warn-ink); }
+.ctx { font-size: 12.5px; color: var(--ink-2); margin-top: 8px; padding: 8px 10px; border: 1px dashed var(--baseline); border-radius: 8px; }
+.rc-box { margin-top: 4px; padding: 14px 16px; border-radius: 10px; background: var(--sec-rc-soft); }
+.rc-box.inv { background: var(--warn-soft); }
+.rc-box .label { font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: var(--sec-rc); }
+.rc-box.inv .label { color: var(--warn-ink); }
+.rc-box p { margin: 4px 0 0; font-weight: 600; }
+.rc-box .reason { font-weight: 400; font-size: 13.5px; color: var(--ink-2); }
+.oq { margin: 10px 0 0; padding-left: 20px; font-size: 14px; }
+
+/* ---------- Solutions ---------- */
+.sol-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 14px; }
+@media (max-width: 760px) { .sol-grid { grid-template-columns: 1fr; } }
+.sol-col h4 { margin: 0 0 8px; font-size: 12.5px; text-transform: uppercase; letter-spacing: .06em; display: flex; align-items: center; gap: 6px; }
+.sol-col.product h4 { color: var(--product-ink); } .sol-col.ops h4 { color: var(--ops-ink); }
+.sol { border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; background: var(--surface); }
+.sol-col.product .sol { border-left: 3px solid var(--product-ink); }
+.sol-col.ops .sol { border-left: 3px solid var(--ops-ink); }
+.sol + .sol { margin-top: 10px; }
+.sol .t { font-weight: 650; }
+.sol .d { margin: 4px 0 6px; font-size: 14px; }
+.sol .a { font-size: 12.5px; color: var(--ink-2); }
+.sol .a b { color: var(--ink); font-weight: 650; }
+.sol .req { margin-top: 6px; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; font-size: 12px; color: var(--ink-2); }
+.rc-mini { font-size: 14px; color: var(--ink-2); margin: 10px 0 0; }
+.empty { color: var(--muted); font-size: 14px; font-style: italic; }
+
+/* ---------- Executive bento report ---------- */
+.bento { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px; }
+.tile { background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 18px; min-width: 0; }
+.span2 { grid-column: span 2; } .span3 { grid-column: span 3; } .span4 { grid-column: span 4; } .span6 { grid-column: span 6; } .row2 { grid-row: span 2; }
+@media (max-width: 900px) { .bento { grid-template-columns: repeat(2, minmax(0, 1fr)); } .span3, .span4, .span6 { grid-column: span 2; } .row2 { grid-row: auto; } }
+.hero { background: #0f2a4a; color: #e8f0fb; border: 0; display: flex; flex-direction: column; justify-content: space-between; gap: 14px; }
+:root[data-theme="dark"] .hero { background: #16304f; }
+@media (prefers-color-scheme: dark) { :root:where(:not([data-theme="light"])) .hero { background: #16304f; } }
+.hero .eyebrow { font-size: 12.5px; color: #9fc1ea; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.hero .big { font-family: Georgia, "Times New Roman", serif; font-size: 64px; line-height: 1; letter-spacing: -.02em; }
+.hero .big small { font-size: 28px; color: #9fc1ea; }
+.hero p { margin: 10px 0 0; font-size: 17px; line-height: 1.45; }
+.stat { border: 0; } .stat .v { font-size: 34px; font-weight: 700; letter-spacing: -.02em; line-height: 1.1; } .stat .l { font-size: 13.5px; margin-top: 2px; }
+.tl { font-size: 14px; font-weight: 650; margin: 0 0 2px; } .tsub { color: var(--muted); font-size: 12.5px; margin: 0 0 12px; }
+.tree { display: grid; grid-auto-flow: column; grid-template-rows: 1fr 1fr; gap: 4px; height: 240px; }
+.tree > div { border-radius: 10px; padding: 10px; display: flex; flex-direction: column; justify-content: space-between; font-size: 13px; overflow: hidden; cursor: pointer; }
+.tree > div:hover { filter: brightness(1.06); }
+.tree > div b { font-size: 24px; font-weight: 700; line-height: 1; }
+.tree > div span { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.35; }
+.tree > div.sm span { -webkit-line-clamp: 2; }
+@media (max-width: 600px) {
+  .tree { grid-auto-flow: row; grid-template-columns: 1fr 1fr !important; grid-template-rows: none; height: auto; }
+  .tree > div { grid-row: auto !important; min-height: 86px; gap: 8px; }
+  .tree > div span, .tree > div.sm span { -webkit-line-clamp: 3; }
+}
+.dlegend { display: flex; flex-direction: column; gap: 8px; font-size: 13px; } .dlegend span { display: flex; align-items: center; gap: 8px; } .dlegend b { margin-left: auto; font-variant-numeric: tabular-nums; }
+.donut-box { display: flex; justify-content: center; margin-bottom: 12px; color: var(--ink); }
+.ppill { display: inline-flex; align-items: center; justify-content: center; min-width: 32px; height: 24px; border-radius: 7px; font-size: 12px; font-weight: 750; padding: 0 7px; flex: none; }
+.d-row { display: grid; grid-template-columns: 1.1fr 1.2fr 1.4fr; gap: 12px; margin-bottom: 14px; align-items: start; }
+@media (max-width: 900px) { .d-row { grid-template-columns: 1fr; } }
+.d-tile { border-top: 6px solid var(--pc); }
+.d-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.d-lab { font-size: 11.5px; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); }
+.d-tile h3 { margin: 10px 0 6px; font-size: 17px; line-height: 1.3; }
+.d-cnt { font-size: 40px; font-weight: 700; color: var(--pc); line-height: 1; } .d-cnt small { font-size: 14px; color: var(--muted); font-weight: 500; }
+.d-mini { display: flex; gap: 2px; height: 10px; margin: 12px 0 8px; border-radius: 5px; overflow: hidden; } .d-mini span { height: 100%; }
+.d-rc { font-size: 15.5px; font-weight: 600; margin: 10px 0; line-height: 1.45; }
+.d-sol { border-radius: 12px; padding: 10px 12px; margin-top: 8px; font-size: 13.5px; }
+.d-sol .k { font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+.d-sol b { display: block; font-size: 14px; margin: 2px 0; }
+.d-sol .a { font-size: 12.5px; color: var(--ink-2); margin-top: 4px; }
+.d-sol.product { background: var(--product-soft); } .d-sol.product .k { color: var(--product-ink); }
+.d-sol.ops { background: var(--ops-soft); } .d-sol.ops .k { color: var(--ops-ink); }
+.d-tile .conf i.on { background: var(--pc); border-color: var(--pc); }
+
+/* ---------- Step checker ---------- */
+#check .sec-num { background: var(--sec-sum); } #check h2 { color: var(--sec-sum); }
+.verdict { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; border-left: 4px solid var(--good); }
+.verdict.bad { border-left-color: var(--crit); }
+.verdict .big { font-size: 18px; font-weight: 650; flex: 1 1 320px; }
+.verdict .big small { display: block; font-size: 14px; font-weight: 400; color: var(--ink-2); margin-top: 2px; }
+ul.checks { list-style: none; margin: 0; padding: 0; }
+ul.checks li { display: grid; grid-template-columns: 24px 1fr; gap: 8px; padding: 9px 0; border-top: 1px solid var(--grid); font-size: 14px; }
+ul.checks li:first-child { border-top: 0; }
+ul.checks .ic { width: 20px; height: 20px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; }
+ul.checks .pass .ic { background: var(--good-soft); color: var(--good-ink); }
+ul.checks .fail .ic { background: var(--crit-soft); color: var(--crit-ink); }
+ul.checks .warn .ic { background: var(--warn-soft); color: var(--warn-ink); }
+ul.checks .info .ic { background: var(--surface-2); color: var(--ink-2); }
+ul.checks .lbl { font-weight: 600; }
+ul.checks .tag { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; margin-right: 6px; }
+ul.checks .fail .tag { color: var(--crit-ink); } ul.checks .warn .tag { color: var(--warn-ink); } ul.checks .pass .tag { color: var(--good-ink); } ul.checks .info .tag { color: var(--ink-2); }
+ul.checks .det { color: var(--ink-2); font-size: 13px; white-space: pre-line; margin-top: 2px; }
+.fix-box textarea { min-height: 150px; }
+ul.review { list-style: none; margin: 0; padding: 0; }
+ul.review li { padding: 6px 0; font-size: 14.5px; }
+ul.review label { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; }
+ul.review input { margin-top: 4px; width: 16px; height: 16px; accent-color: var(--good); }
+.snip { color: var(--ink-2); font-size: 13.5px; }
+.item-row { display: grid; grid-template-columns: auto auto 1fr; gap: 8px; align-items: baseline; padding: 7px 0; border-top: 1px solid var(--grid); }
+.item-row:first-child { border-top: 0; }
+@media (max-width: 560px) { .item-row { grid-template-columns: auto 1fr; } .item-row .snip { grid-column: 1 / -1; } }
+tr.flag td { background: var(--crit-soft); }
+
+/* ---------- Tooltip, dialogs, dropzone ---------- */
+#tip { position: fixed; z-index: 60; pointer-events: none; background: var(--ink); color: var(--surface); font-size: 12.5px; padding: 6px 9px; border-radius: 6px; max-width: 280px; opacity: 0; transition: opacity .08s; }
+#tip.show { opacity: 1; }
+.dropzone { position: fixed; inset: 0; background: color-mix(in srgb, var(--s1) 14%, transparent); border: 3px dashed var(--s1); display: none; align-items: center; justify-content: center; z-index: 50; font-size: 20px; font-weight: 700; color: var(--s1); }
+.dropzone.show { display: flex; }
+dialog { border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); color: var(--ink); padding: 0; width: min(720px, calc(100vw - 32px)); }
+dialog::backdrop { background: rgba(0,0,0,.45); }
+.dlg-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 14px 18px; border-bottom: 1px solid var(--border); }
+.dlg-body { padding: 16px 18px; max-height: 65vh; overflow: auto; }
+.dlg-foot { padding: 12px 18px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
+textarea { width: 100%; min-height: 240px; font: 13px/1.5 ui-monospace, Menlo, monospace; background: var(--surface-2); color: var(--ink); border: 1px solid var(--border); border-radius: 8px; padding: 10px; }
+.msg { padding: 8px 0; border-bottom: 1px solid var(--grid); font-size: 14px; white-space: pre-wrap; }
+.msg:last-child { border-bottom: 0; }
+.msg b { color: var(--ink-2); font-size: 12px; text-transform: uppercase; letter-spacing: .04em; display: block; }
+mark { background: var(--warn-soft); color: inherit; padding: 0 1px; border-radius: 2px; box-shadow: inset 0 -2px 0 var(--warn); }
+code { font: 12.5px ui-monospace, Menlo, monospace; background: var(--surface-2); padding: 1px 5px; border-radius: 4px; }
+footer { color: var(--muted); font-size: 13px; text-align: center; padding-bottom: 32px; }
+footer a { color: var(--ink-2); }
+@media (max-width: 760px) { header.top { position: static; } html { scroll-padding-top: 8px; } }
+@media print {
+  header.top, .actions, .banner, footer, details.table-view { display: none !important; }
+  body { background: #fff; }
+  .card, .kpi { box-shadow: none; break-inside: avoid; }
+}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap topbar">
+    <div class="brand"><span class="logo" aria-hidden="true"></span>Feedback RCA</div>
+    <nav class="sections" aria-label="Sections">
+      <a href="#summary"><i style="background:var(--sec-sum)"></i>Overview</a>
+      <a href="#breakdown"><i style="background:var(--sec-prob)"></i>Who and where</a>
+      <a href="#details"><i style="background:var(--sec-rc)"></i>Problem → cause → fix</a>
+    </nav>
+    <div class="actions">
+      <div class="seg" role="group" aria-label="Theme">
+        <button id="theme-light" aria-pressed="false">☀ Light</button>
+        <button id="theme-dark" aria-pressed="false">☾ Dark</button>
+      </div>
+      <button class="primary" id="btn-check" title="Paste the AI's answer from any step to check it before you continue">✓ Check a step</button>
+      <button id="btn-load" title="Load a report JSON produced by Step 4">Load report</button>
+      <button id="btn-verify" title="Load the original feedback CSV to check every quote">Verify quotes</button>
+      <button id="btn-print">Print / PDF</button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <div id="banner" class="banner" role="status"></div>
+  <div id="app"></div>
+</main>
+
+<footer class="wrap">
+  Generated with the <a href="https://github.com/ying-jiao/voice-of-customer">Feedback RCA workflow</a>. Analysis is limited to evidence in the feedback. Review before acting.
+</footer>
+
+<div id="tip" role="tooltip"></div>
+<div class="dropzone" id="dropzone">Drop a report .json or feedback .csv</div>
+<input type="file" id="file-report" accept=".json,application/json" hidden>
+<input type="file" id="file-items" accept=".csv,text/csv" hidden>
+
+<dialog id="dlg-load">
+  <div class="dlg-head"><strong>Load report</strong><button data-close>Close</button></div>
+  <div class="dlg-body">
+    <p style="margin:0 0 10px;color:var(--ink-2);font-size:14px">Paste the JSON from Step 4, choose a <code>.json</code> file, or drag and drop it anywhere on the page.</p>
+    <textarea id="paste" placeholder='{ "meta": { ... }, "summary": { ... }, "problems": [ ... ] }'></textarea>
+  </div>
+  <div class="dlg-foot">
+    <button id="btn-choose">Choose file…</button>
+    <button id="btn-sample">Show sample</button>
+    <button class="primary" id="btn-paste">Load pasted JSON</button>
+  </div>
+</dialog>
+
+<dialog id="dlg-check">
+  <div class="dlg-head"><strong>Check a step</strong><button data-close>Close</button></div>
+  <div class="dlg-body">
+    <p style="margin:0 0 8px;color:var(--ink-2);font-size:14px">Paste the AI's <strong>whole answer</strong> for Step 1, 2, 3 or 4, including the review table and the JSON. The dashboard works out which step it is.</p>
+    <p id="check-csv-note" style="margin:0 0 10px;font-size:13.5px"></p>
+    <div id="check-error" class="banner" role="alert"></div>
+    <textarea id="paste-check" placeholder="Paste the AI's answer here…"></textarea>
+  </div>
+  <div class="dlg-foot">
+    <button id="btn-check-csv">Load feedback CSV…</button>
+    <button class="primary" id="btn-run-check">Check</button>
+  </div>
+</dialog>
+
+<dialog id="dlg-item">
+  <div class="dlg-head"><div><strong id="item-title"></strong><div id="item-meta" class="chips" style="margin-top:6px"></div></div><button data-close>Close</button></div>
+  <div class="dlg-body" id="item-body"></div>
+</dialog>
+
+<script type="text/csv" id="sample-items">
+item_id,source,created_at,author_type,title,text
+T-1001,support_ticket,2026-08-03,courier,Waited 35 minutes at restaurant,"[Courier] I got to Golden Wok at 6:05 for order #A-88213. They told me the food wouldn't be ready until 6:40. I waited the whole time. Is there any compensation for that?
+[Agent] Thanks for waiting and for letting us know. I can see you arrived at 6:04 and picked up at 6:39. I've added a $4.00 wait time adjustment to your account.
+[Courier] Thanks. This keeps happening at this store though, it's the third time this week.
+[Agent] I understand. I've flagged the store for review."
+T-1002,support_ticket,2026-08-03,merchant,Couriers showing up way too early,"[Merchant] Hi, we're a catering kitchen. Your couriers are arriving 30-40 minutes before our orders are ready and standing around in our kitchen. Some of them cancel and then we have to wait for a new courier.
+[Agent] Sorry about that. Looking at your account, your prep time is set to the default of 10 minutes, so couriers are dispatched to arrive about 10 minutes after the order is placed.
+[Merchant] 10 minutes? Our catering trays take at least 45. Nobody mentioned a prep time setting when we set up the account.
+[Agent] You can change it in the Merchant Dashboard under Store Settings > Prep Time. I've updated it to 45 minutes for you now.
+[Merchant] Ok thanks. Can it be different per order? Our small orders are faster.
+[Agent] The dashboard setting is one value per store. Per-order times can be sent through the API using the ready_at field if your integration supports it."
+T-1003,support_ticket,2026-08-04,courier,Order reassigned after long wait,"[Courier] I waited 25 minutes at Bella Pasta and then I had to unassign myself because I couldn't wait any longer. I got nothing for the 25 minutes.
+[Agent] I'm sorry about that. Because you unassigned yourself before pickup, the trip isn't eligible for pay, but I've added a one-time $3.00 wait credit as a courtesy.
+[Courier] The store said the food wasn't even started when I got there."
+T-1004,support_ticket,2026-08-05,merchant,How do we tell you when food is ready?,"[Merchant] Is there a way to tell your system when an order is actually ready? Drivers keep coming too early. We use the TillStack POS integration.
+[Agent] Your store can send a ready time with each order through the API's ready_at field. Integrations that don't send ready_at use your store's default prep time.
+[Merchant] I checked with TillStack and they said their integration doesn't send that field. So we're stuck with the default?
+[Agent] For now, yes. I'd recommend adjusting your default prep time to match your typical order. Yours is currently 10 minutes.
+[Merchant] Our typical order is 25 minutes. I'll change it but big orders will still be off."
+T-1005,support_ticket,2026-08-05,consumer,Food arrived cold and late,"[Consumer] My order from Golden Wok was supposed to arrive at 6:30 and came at 7:05. The driver said they'd been waiting at the restaurant for half an hour. Food was lukewarm.
+[Agent] I'm sorry about the delay. I can see the courier waited at the store for 35 minutes before pickup. I've issued a $5 credit to your account."
+T-1006,support_ticket,2026-08-06,courier,Restaurant tells me to wait outside,"[Courier] Every time I get sent to Spice Route, the order isn't ready and staff tell me to wait outside. App says pickup at 7:15, food comes out at 7:40. Why does the app send me so early?
+[Agent] The pickup time is based on the prep time the store has set. I'll pass this feedback on.
+[Courier] Can you at least pay for waiting?
+[Agent] Wait pay starts after 10 minutes at the store. I've confirmed you received $3.50 wait pay for this trip."
+T-1007,support_ticket,2026-08-07,merchant,Drivers crowding our counter,"[Merchant] We had 6 drivers standing at our counter at lunch today, all waiting for orders that weren't ready. It's blocking our walk-in customers.
+[Agent] I'm sorry. Your prep time is currently set to 12 minutes. Is that accurate for your lunch orders?
+[Merchant] At lunch it's more like 30. During the afternoon it's 12. Is there a setting for peak hours?
+[Agent] Not at the moment. Prep time is a single value for the store. I've noted your feedback."
+T-1008,support_ticket,2026-08-09,courier,Long waits at Bella Pasta again,"[Courier] Third long wait at Bella Pasta this week. 20+ minutes each time. Staff said they only start cooking when the driver gets assigned.
+[Agent] Thank you for reporting. I've added this to the store's report and applied wait pay for the trip."
+T-1009,support_ticket,2026-08-03,consumer,Driver didn't follow my instructions,"[Consumer] I put the gate code and ""leave with concierge"" in my instructions when ordering from Greenleaf Market's website. The driver left the bag outside the gate on the sidewalk.
+[Agent] I'm sorry. I checked the delivery and the courier did not see any drop-off instructions on their side. It looks like Greenleaf sent your note in the order notes field, which isn't shown to couriers. Only the drop-off instructions field is shown.
+[Consumer] So it's the store's fault? I typed it in the right box.
+[Agent] I've issued a refund of $12 for the inconvenience and I'll let the store know."
+T-1010,support_ticket,2026-08-04,courier,No instructions for apartment building,"[Courier] Delivered to a big apartment complex with no buzzer number and no instructions. Customer called me angry saying they left instructions. I didn't see any in the app.
+[Agent] Thanks. I checked the order and the drop-off instructions field was empty. The customer's notes were sent by the merchant in a different field that isn't displayed in the courier app.
+[Courier] Then how am I supposed to know? Can you make the app show it?
+[Agent] I'll pass that to our product team."
+T-1011,support_ticket,2026-08-05,merchant,Customer notes not reaching drivers,"[Merchant] Hi, I'm the developer for Greenleaf Market's ordering site. We're getting complaints that drivers ignore delivery notes. We pass the customer's notes in order_notes on the create delivery call. Is that wrong?
+[Agent] Couriers only see the dropoff_instructions field. order_notes is visible to your store staff and our support team but not in the courier app.
+[Merchant] The API docs describe order_notes as ""notes about the order"". It doesn't say couriers won't see it. We'll switch, but you should make this clearer, and the API didn't give any warning.
+[Agent] Understood, I'll share this with our developer documentation team."
+T-1012,support_ticket,2026-08-06,consumer,Left at the wrong door,"[Consumer] I wrote ""back door, front door is locked, dog in yard"" and the driver went to the front and left it at the locked door. Package got rained on.
+[Agent] I'm sorry. The courier's app didn't show any drop-off instructions for this delivery. The note was received in the order notes from the store, not the drop-off instructions.
+[Consumer] I don't care which field. Please fix this.
+[Agent] I've refunded the order."
+T-1013,support_ticket,2026-08-08,consumer,Instructions ignored again,"[Consumer] Second time this month. I gave the concierge instructions and they weren't followed. Ordered from Pharmly Pharmacy.
+[Agent] I see the instructions came through as order notes, which couriers don't see. I've refunded the delivery fee."
+T-1014,support_ticket,2026-08-10,courier,Customer says I ignored their note,"[Courier] I got a low rating because the customer said I ignored their note about leaving it with the neighbour. There was no note on my screen. Can the rating be removed?
+[Agent] I confirmed there were no drop-off instructions on this delivery in the courier app. I've removed the rating."
+T-1015,support_ticket,2026-08-11,consumer,Buzzer code not used,"[Consumer] Driver called me 4 times to ask for the buzzer code even though I put it in the instructions on Urban Bakes' website.
+[Agent] Sorry for the hassle. The code was in the order notes the store sent, which couriers can't see. I'll reach out to Urban Bakes about sending it as drop-off instructions."
+T-1016,support_ticket,2026-08-04,merchant,What is this Adjustment charge?,"[Merchant] Our weekly invoice has 4 lines that just say ""Adjustment"" for $8.50 each. What are these?
+[Agent] Those are return fees. When a courier can't complete a delivery and returns the items to your store, a return fee is charged.
+[Merchant] Where is that explained? The invoice just says Adjustment and doesn't say which orders.
+[Agent] The invoice uses the ""Adjustment"" label for all fee types. I can send you the order IDs."
+T-1017,support_ticket,2026-08-05,merchant,Unknown charges,"[Merchant] I've been charged $25.50 extra this week with no explanation. I looked through the help center and found nothing about these charges.
+[Agent] These are 3 return fees of $8.50 for deliveries that were returned to your store. I'm sorry that it wasn't clear.
+[Merchant] Why would I pay when the customer wasn't home? That's not my fault.
+[Agent] I understand the frustration. The return fee covers the courier's trip back to your store. As a one-time courtesy I've waived these."
+T-1018,support_ticket,2026-08-06,merchant,Dispute invoice INV-30422,"[Merchant] I want to dispute the Adjustments on invoice INV-30422. Nobody told us about these.
+[Agent] These relate to two returned deliveries. I've attached the order IDs. The return fee is listed in the merchant terms.
+[Merchant] We've been using you for 8 months and this is the first time anyone mentioned it."
+T-1019,support_ticket,2026-08-08,merchant,Invoice line items,"[Merchant] Can you add which order each Adjustment line is for? Our accounting team has to email support every week to reconcile.
+[Agent] Currently the invoice doesn't include order-level detail for adjustments. You can request a breakdown from support, which I've done for this week."
+T-1020,support_ticket,2026-08-10,merchant,Charged for a return,"[Merchant] A courier brought back an order today because the customer didn't answer. Now there's an Adjustment for $8.50. Is that what this is?
+[Agent] Yes, that's the return fee.
+[Merchant] Ok. It would help if the invoice just said that."
+T-1021,support_ticket,2026-08-12,merchant,Billing question for July,"[Merchant] Our finance team flagged unexplained ""Adjustment"" charges totaling $59.50 for July. Please explain.
+[Agent] These are 7 return fees at $8.50 each. I've emailed a list of the related orders."
+T-1022,support_ticket,2026-08-04,courier,Not paid for returning order,"[Courier] Customer didn't answer so I drove the order back to the store, 15 minutes. My trip receipt shows only the original pay. I didn't get paid for the return.
+[Agent] Return pay is added as a separate adjustment within 72 hours. It doesn't appear on the trip receipt.
+[Courier] There's nothing in the app that says that. I thought I was just not getting paid."
+T-1023,support_ticket,2026-08-06,courier,Return trip pay missing,"[Courier] Had to return 2 orders yesterday. Where is my pay for that?
+[Agent] Return pay is processed within 72 hours of the trip. I can see both are scheduled and will appear in your earnings as adjustments.
+[Courier] Why can't the app show it's pending?"
+T-1024,support_ticket,2026-08-07,courier,Do we even get paid for returns?,"[Courier] Honestly asking, do couriers get paid for bringing orders back? I've done several and never saw anything.
+[Agent] Yes, return pay is added later as an adjustment. I checked your account and you received return pay for 4 trips in the last month, listed as ""Adjustment"" in your earnings.
+[Courier] I saw those but had no idea what they were."
+T-1025,support_ticket,2026-08-09,courier,Return trip,"[Courier] I'm refusing to do returns from now on if I don't get paid. Last one I drove 20 minutes back.
+[Agent] I understand. Return pay for that trip will show in your earnings within 72 hours as an adjustment."
+T-1026,support_ticket,2026-08-11,courier,Weekly earnings look wrong,"[Courier] My weekly earnings summary is lower than I calculated. I had a return on Tuesday.
+[Agent] The return pay for Tuesday was added on Thursday as an adjustment, so it falls in next week's summary.
+[Courier] That's confusing. The trip happened this week."
+T-1027,support_ticket,2026-08-05,courier,Map pin wrong,"[Courier] Map pin for 1180 Harbor View Rd took me to a construction site about 400 m from the actual building. Wasted 10 min finding it.
+[Agent] Thanks for reporting. I've escalated the address to our mapping team."
+T-1028,support_ticket,2026-08-07,consumer,Driver went to the wrong building,"[Consumer] My order went to the wrong building. I live in the new Harbor View development. The driver said the map sent them to the other side of the lot.
+[Agent] Sorry about that. I've refunded the delivery fee and reported the location issue."
+T-1029,support_ticket,2026-08-09,courier,Bad location in new subdivision,"[Courier] Addresses in the new Maple Ridge subdivision keep showing in the middle of a field on my map. Happened 3 times this week.
+[Agent] Thanks. I've sent these to our mapping team for review."
+T-1030,support_ticket,2026-08-12,consumer,Late because driver got lost,"[Consumer] Driver couldn't find my house, called me twice. I'm on Maple Ridge Drive, it's a new street.
+[Agent] Apologies. I've added a $5 credit and reported the address."
+T-1031,support_ticket,2026-08-06,consumer,Change tip after delivery,"[Consumer] Can I increase my tip? The driver was great.
+[Agent] Tips are set on the store's checkout page, so we can't change them after delivery. I'll pass along your thanks to the courier."
+T-1032,support_ticket,2026-08-08,courier,App crashed during navigation,"[Courier] The app closed in the middle of a delivery while I was navigating. I reopened it and it was fine.
+[Agent] Thanks for letting us know. If it happens again, please send us your app version."
+T-1033,support_ticket,2026-08-10,merchant,Adding a second store,"[Merchant] We're opening a second location next month. How do we add it?
+[Agent] You can add a store in the Merchant Dashboard under Stores > Add Store. Each store gets its own settings."
+T-1034,support_ticket,2026-08-12,consumer,Great service,"[Consumer] Just wanted to say the delivery today was really fast. Thanks!
+[Agent] Thank you for the kind words! We'll share them with the team."
+S-2001,survey,2026-08-08,merchant,Merchant survey: What's one thing we should improve?,"Drivers show up way before our food is ready, especially at lunch. We set prep time once when we joined and never touched it again."
+S-2002,survey,2026-08-08,merchant,Merchant survey: What's one thing we should improve?,Please make the invoice readable. Half our charges just say Adjustment and our bookkeeper can't match them to orders.
+S-2003,survey,2026-08-09,merchant,Merchant survey: What's one thing we should improve?,The return fee was a surprise. I'd rather know when it happens than find it on the invoice a week later.
+S-2004,survey,2026-08-09,merchant,Merchant survey: What's one thing we should improve?,Our catering orders take 45+ minutes but couriers are sent like it's a coffee order. There should be a way to set prep time per order from the dashboard.
+S-2005,survey,2026-08-10,merchant,Merchant survey: What's one thing we should improve?,Honestly works well for us. Couriers are polite and on time.
+S-2006,survey,2026-08-10,merchant,Merchant survey: What's one thing we should improve?,Your API docs could be clearer about which fields drivers actually see. We learned the hard way.
+S-2101,survey,2026-08-07,courier,Courier pulse survey: Anything making deliveries harder?,"Return trips. I never know if I'm getting paid for them until days later, if at all."
+S-2102,survey,2026-08-07,courier,Courier pulse survey: Anything making deliveries harder?,Waiting at restaurants. Some places I wait 30 min every time because the food isn't started.
+S-2103,survey,2026-08-08,courier,Courier pulse survey: Anything making deliveries harder?,I accept an order and it's 8 bags of groceries or a stack of catering trays. The offer screen should show how big the order is.
+S-2104,survey,2026-08-09,courier,Courier pulse survey: Anything making deliveries harder?,"New neighborhoods are a nightmare, the pin is always off."
+S-2105,survey,2026-08-11,courier,Courier pulse survey: Anything making deliveries harder?,App drains my battery fast.
+S-2201,survey,2026-08-05,consumer,Post-delivery survey: Tell us about your delivery,Left at the front door even though I wrote to use the side entrance.
+S-2202,survey,2026-08-06,consumer,Post-delivery survey: Tell us about your delivery,"Driver couldn't get into my building, I had written the code in the notes."
+S-2203,survey,2026-08-07,consumer,Post-delivery survey: Tell us about your delivery,Food was cold. Courier said they waited at the restaurant a long time.
+S-2204,survey,2026-08-09,consumer,Post-delivery survey: Tell us about your delivery,"Fast and friendly, thanks!"
+S-2205,survey,2026-08-12,consumer,Post-delivery survey: Tell us about your delivery,Driver went to the wrong side of the new complex on Harbor View.
+R-3001,app_review,2026-08-06,courier,Acme Courier App review (2 stars),Returns pay shows up as some random Adjustment days later. Took me weeks to figure out what it was.
+R-3002,app_review,2026-08-08,courier,Acme Courier App review (3 stars),Decent app but you can't see the order size before accepting. Got a 10-tray catering order in a hatchback.
+R-3003,app_review,2026-08-10,courier,Acme Courier App review (2 stars),Too much waiting at restaurants and wait pay barely covers it.
+R-3004,app_review,2026-08-11,courier,Acme Courier App review (3 stars),Wish I could see how many items or bags before I accept. Some orders don't fit on a bike.
+</script>
+
+<script type="application/json" id="sample-report">
+{
+  "meta": {
+    "title": "Customer Feedback Root Cause Analysis",
+    "product": "Acme Direct (fictional)",
+    "period": "2026-08-03 to 2026-08-12",
+    "items_analyzed": 54,
+    "by_source": { "support_ticket": 34, "survey": 16, "app_review": 4 },
+    "by_author_type": { "merchant": 17, "consumer": 14, "courier": 23 }
+  },
+  "summary": {
+    "headline": "47 of 54 feedback items, from support tickets, surveys and app reviews, point to 6 recurring problems. The largest, couriers arriving before orders are ready, appears in all three sources and is reported by merchants, couriers and consumers.",
+    "key_findings": [
+      "P1 · 13 items (tickets, surveys, app reviews): couriers wait at stores because dispatch timing uses one static prep time per store, often left at the 10-minute default, with no way to vary it by order or time of day.",
+      "P2 · 10 items (tickets, surveys): consumers' drop-off instructions don't reach couriers because merchants send them in order_notes, a field the courier app does not show, and the API docs don't warn about it.",
+      "P3 + P4 · 15 items: both sides of a returned order are confusing. Merchants can't identify return fees and couriers can't identify return pay, because both appear only as a generic \"Adjustment\".",
+      "P5 · 6 items (tickets, surveys): map locations are wrong in newly built developments. The feedback does not show why, so this needs investigation.",
+      "P6 · 3 items, surveys and app reviews only: couriers can't see order size before accepting. No support ticket mentions this, so ticket analysis alone would miss it.",
+      "7 items were one-off issues or not problems."
+    ]
+  },
+  "problems": [
+    {
+      "id": "P1",
+      "title": "Couriers arrive before orders are ready",
+      "description": "Couriers are sent to stores well before food is ready and wait 20–40 minutes, sometimes unassigning without pay. Merchants report crowded counters and courier cancellations, and consumers receive late, cold food.",
+      "item_ids": ["T-1001", "T-1002", "T-1003", "T-1004", "T-1005", "T-1006", "T-1007", "T-1008", "S-2001", "S-2004", "S-2102", "S-2203", "R-3003"],
+      "item_count": 13,
+      "by_source": { "support_ticket": 8, "survey": 4, "app_review": 1 },
+      "by_author_type": { "merchant": 5, "courier": 6, "consumer": 2 },
+      "evidence": [
+        { "item_id": "T-1002", "source": "support_ticket", "speaker": "merchant", "quote": "Your couriers are arriving 30-40 minutes before our orders are ready and standing around in our kitchen." },
+        { "item_id": "T-1006", "source": "support_ticket", "speaker": "courier", "quote": "App says pickup at 7:15, food comes out at 7:40. Why does the app send me so early?" },
+        { "item_id": "S-2102", "source": "survey", "speaker": "courier", "quote": "Some places I wait 30 min every time because the food isn't started." },
+        { "item_id": "S-2203", "source": "survey", "speaker": "consumer", "quote": "Food was cold. Courier said they waited at the restaurant a long time." }
+      ]
+    },
+    {
+      "id": "P2",
+      "title": "Drop-off instructions don't reach couriers",
+      "description": "Consumers enter gate codes, buzzer numbers and drop-off notes on the merchant's site, but couriers never see them. Orders are left in the wrong place, couriers call repeatedly, and couriers are blamed and rated down for ignoring notes.",
+      "item_ids": ["T-1009", "T-1010", "T-1011", "T-1012", "T-1013", "T-1014", "T-1015", "S-2006", "S-2201", "S-2202"],
+      "item_count": 10,
+      "by_source": { "support_ticket": 7, "survey": 3 },
+      "by_author_type": { "consumer": 6, "courier": 2, "merchant": 2 },
+      "evidence": [
+        { "item_id": "T-1009", "source": "support_ticket", "speaker": "consumer", "quote": "The driver left the bag outside the gate on the sidewalk." },
+        { "item_id": "T-1010", "source": "support_ticket", "speaker": "courier", "quote": "Customer called me angry saying they left instructions. I didn't see any in the app." },
+        { "item_id": "S-2202", "source": "survey", "speaker": "consumer", "quote": "Driver couldn't get into my building, I had written the code in the notes." },
+        { "item_id": "T-1011", "source": "support_ticket", "speaker": "merchant", "quote": "We're getting complaints that drivers ignore delivery notes." }
+      ]
+    },
+    {
+      "id": "P3",
+      "title": "Merchants can't identify \"Adjustment\" charges",
+      "description": "Merchants and their finance teams find unexplained \"Adjustment\" lines on invoices and must contact support to learn what they are and which orders they relate to. Some dispute the charges because they were never told about the fee.",
+      "item_ids": ["T-1016", "T-1017", "T-1018", "T-1019", "T-1020", "T-1021", "S-2002", "S-2003"],
+      "item_count": 8,
+      "by_source": { "support_ticket": 6, "survey": 2 },
+      "by_author_type": { "merchant": 8 },
+      "evidence": [
+        { "item_id": "T-1016", "source": "support_ticket", "speaker": "merchant", "quote": "Our weekly invoice has 4 lines that just say \"Adjustment\" for $8.50 each. What are these?" },
+        { "item_id": "S-2002", "source": "survey", "speaker": "merchant", "quote": "Half our charges just say Adjustment and our bookkeeper can't match them to orders." },
+        { "item_id": "T-1018", "source": "support_ticket", "speaker": "merchant", "quote": "We've been using you for 8 months and this is the first time anyone mentioned it." }
+      ]
+    },
+    {
+      "id": "P4",
+      "title": "Couriers think returns are unpaid",
+      "description": "After driving undeliverable orders back to stores, couriers see no return pay on the trip and believe they were not paid. Some say they will refuse returns, and others find their weekly earnings don't match the trips they did.",
+      "item_ids": ["T-1022", "T-1023", "T-1024", "T-1025", "T-1026", "S-2101", "R-3001"],
+      "item_count": 7,
+      "by_source": { "support_ticket": 5, "survey": 1, "app_review": 1 },
+      "by_author_type": { "courier": 7 },
+      "evidence": [
+        { "item_id": "T-1022", "source": "support_ticket", "speaker": "courier", "quote": "My trip receipt shows only the original pay. I didn't get paid for the return." },
+        { "item_id": "S-2101", "source": "survey", "speaker": "courier", "quote": "I never know if I'm getting paid for them until days later, if at all." },
+        { "item_id": "T-1025", "source": "support_ticket", "speaker": "courier", "quote": "I'm refusing to do returns from now on if I don't get paid." }
+      ]
+    },
+    {
+      "id": "P5",
+      "title": "Wrong map locations in new developments",
+      "description": "Couriers are sent to the wrong spot for addresses in newly built areas, such as a construction site or an empty field. This causes late deliveries and repeated calls to consumers.",
+      "item_ids": ["T-1027", "T-1028", "T-1029", "T-1030", "S-2104", "S-2205"],
+      "item_count": 6,
+      "by_source": { "support_ticket": 4, "survey": 2 },
+      "by_author_type": { "courier": 3, "consumer": 3 },
+      "evidence": [
+        { "item_id": "T-1027", "source": "support_ticket", "speaker": "courier", "quote": "Map pin for 1180 Harbor View Rd took me to a construction site about 400 m from the actual building." },
+        { "item_id": "S-2104", "source": "survey", "speaker": "courier", "quote": "New neighborhoods are a nightmare, the pin is always off." },
+        { "item_id": "T-1030", "source": "support_ticket", "speaker": "consumer", "quote": "Driver couldn't find my house, called me twice. I'm on Maple Ridge Drive, it's a new street." }
+      ]
+    },
+    {
+      "id": "P6",
+      "title": "Couriers can't see order size before accepting",
+      "description": "Couriers accept orders without knowing how large they are, then find large grocery or catering orders that don't fit their car or bike. This appears only in surveys and app reviews, not in support tickets.",
+      "item_ids": ["S-2103", "R-3002", "R-3004"],
+      "item_count": 3,
+      "by_source": { "survey": 1, "app_review": 2 },
+      "by_author_type": { "courier": 3 },
+      "evidence": [
+        { "item_id": "S-2103", "source": "survey", "speaker": "courier", "quote": "The offer screen should show how big the order is." },
+        { "item_id": "R-3002", "source": "app_review", "speaker": "courier", "quote": "Got a 10-tray catering order in a hatchback." },
+        { "item_id": "R-3004", "source": "app_review", "speaker": "courier", "quote": "Some orders don't fit on a bike." }
+      ]
+    }
+  ],
+  "other_items": [
+    { "item_id": "T-1031", "reason": "Single occurrence: consumer wants to change the tip after delivery" },
+    { "item_id": "T-1032", "reason": "Single occurrence: courier app closed once during navigation; resolved on restart" },
+    { "item_id": "T-1033", "reason": "Not a problem: how-to question about adding a store" },
+    { "item_id": "T-1034", "reason": "Not a problem: compliment" },
+    { "item_id": "S-2005", "reason": "Not a problem: positive merchant feedback" },
+    { "item_id": "S-2105", "reason": "Single occurrence: courier app battery drain" },
+    { "item_id": "S-2204", "reason": "Not a problem: compliment" }
+  ],
+  "root_causes": [
+    {
+      "problem_id": "P1",
+      "five_whys": [
+        {
+          "why": "Why do couriers wait a long time at stores?",
+          "because": "They are dispatched to arrive well before the order is ready.",
+          "evidence": [
+            { "type": "quote", "item_id": "T-1001", "quote": "They told me the food wouldn't be ready until 6:40." },
+            { "type": "quote", "item_id": "T-1006", "quote": "App says pickup at 7:15, food comes out at 7:40." }
+          ]
+        },
+        {
+          "why": "Why are couriers dispatched too early?",
+          "because": "Dispatch is timed using the store's prep time setting, and that setting is much shorter than the real prep time at these stores.",
+          "evidence": [
+            { "type": "quote", "item_id": "T-1002", "quote": "your prep time is set to the default of 10 minutes, so couriers are dispatched to arrive about 10 minutes after the order is placed." },
+            { "type": "quote", "item_id": "T-1002", "quote": "Our catering trays take at least 45." },
+            { "type": "quote", "item_id": "T-1004", "quote": "Our typical order is 25 minutes." },
+            { "type": "quote", "item_id": "T-1006", "quote": "The pickup time is based on the prep time the store has set." }
+          ]
+        },
+        {
+          "why": "Why is the prep time setting wrong?",
+          "because": "Merchants are not told about the setting during setup, so it stays at whatever was set at the start. Even when it is set, it is one value per store and cannot reflect order size or peak hours.",
+          "evidence": [
+            { "type": "quote", "item_id": "T-1002", "quote": "Nobody mentioned a prep time setting when we set up the account." },
+            { "type": "quote", "item_id": "S-2001", "quote": "We set prep time once when we joined and never touched it again." },
+            { "type": "quote", "item_id": "T-1002", "quote": "The dashboard setting is one value per store." },
+            { "type": "quote", "item_id": "T-1007", "quote": "At lunch it's more like 30. During the afternoon it's 12. Is there a setting for peak hours?" }
+          ]
+        },
+        {
+          "why": "Why can't merchants send an accurate time per order instead?",
+          "because": "The per-order ready_at field is optional, some POS integrations don't send it, and the dashboard offers no per-order alternative.",
+          "evidence": [
+            { "type": "quote", "item_id": "T-1004", "quote": "Integrations that don't send ready_at use your store's default prep time." },
+            { "type": "quote", "item_id": "T-1004", "quote": "I checked with TillStack and they said their integration doesn't send that field. So we're stuck with the default?" },
+            { "type": "quote", "item_id": "S-2004", "quote": "There should be a way to set prep time per order from the dashboard." },
+            { "type": "business_context", "note": "ready_at is described as an optional API field for the time a specific order will be ready." }
+          ]
+        }
+      ],
+      "root_cause": "Courier dispatch relies on a single, static, store-level prep time. Onboarding does not cover it, so it is rarely updated, and it cannot vary by order or time of day. The only per-order signal (ready_at) is optional, unsupported by some POS integrations, and not available in the dashboard.",
+      "category": "product_and_operations",
+      "status": "confirmed",
+      "confidence": "high",
+      "confidence_reason": "Agents explain the dispatch mechanism in two tickets, and merchants confirm it independently in tickets and the survey.",
+      "open_questions": []
+    },
+    {
+      "problem_id": "P2",
+      "five_whys": [
+        {
+          "why": "Why are consumers' drop-off instructions not followed?",
+          "because": "Couriers do not see the instructions in the courier app.",
+          "evidence": [
+            { "type": "quote", "item_id": "T-1009", "quote": "the courier did not see any drop-off instructions on their side." },
+            { "type": "quote", "item_id": "T-1014", "quote": "I confirmed there were no drop-off instructions on this delivery in the courier app." }
+          ]
+        },
+        {
+          "why": "Why don't couriers see the instructions?",
+          "because": "Merchants send the consumer's instructions in the order_notes field. The courier app only displays dropoff_instructions.",
+          "evidence": [
+            { "type": "quote", "item_id": "T-1011", "quote": "Couriers only see the dropoff_instructions field. order_notes is visible to your store staff and our support team but not in the courier app." },
+            { "type": "quote", "item_id": "T-1012", "quote": "The note was received in the order notes from the store, not the drop-off instructions." },
+            { "type": "quote", "item_id": "T-1015", "quote": "The code was in the order notes the store sent, which couriers can't see." }
+          ]
+        },
+        {
+          "why": "Why do merchant integrations put instructions in order_notes?",
+          "because": "The API documentation does not say order_notes is hidden from couriers, and the API gives no warning when it is used this way.",
+          "evidence": [
+            { "type": "quote", "item_id": "T-1011", "quote": "The API docs describe order_notes as \"notes about the order\". It doesn't say couriers won't see it." },
+            { "type": "quote", "item_id": "T-1011", "quote": "We'll switch, but you should make this clearer, and the API didn't give any warning." },
+            { "type": "quote", "item_id": "S-2006", "quote": "Your API docs could be clearer about which fields drivers actually see." }
+          ]
+        }
+      ],
+      "root_cause": "The Delivery API offers two similar free-text fields, but the courier app shows only one. Neither the docs nor the API warn about this, so integrations send consumer instructions to a field couriers never see.",
+      "category": "product_and_operations",
+      "status": "confirmed",
+      "confidence": "high",
+      "confidence_reason": "Agents explain the field behavior in four tickets, and two merchants independently point to the API docs.",
+      "open_questions": []
+    },
+    {
+      "problem_id": "P3",
+      "five_whys": [
+        {
+          "why": "Why do merchants contact support about invoice charges?",
+          "because": "They cannot tell from the invoice what certain charges are.",
+          "evidence": [
+            { "type": "quote", "item_id": "T-1021", "quote": "Our finance team flagged unexplained \"Adjustment\" charges totaling $59.50 for July." },
+            { "type": "quote", "item_id": "T-1017", "quote": "I've been charged $25.50 extra this week with no explanation." }
+          ]
+        },
+        {
+          "why": "Why can't merchants tell what the charges are?",
+          "because": "The invoice labels every fee type as \"Adjustment\" and does not show the related order.",
+          "evidence": [
+            { "type": "quote", "item_id": "T-1016", "quote": "The invoice uses the \"Adjustment\" label for all fee types." },
+            { "type": "quote", "item_id": "T-1019", "quote": "Currently the invoice doesn't include order-level detail for adjustments." },
+            { "type": "quote", "item_id": "S-2002", "quote": "Half our charges just say Adjustment and our bookkeeper can't match them to orders." }
+          ]
+        },
+        {
+          "why": "Why don't merchants already know about return fees?",
+          "because": "The return fee is documented only in the merchant terms. Merchants say they can't find it in the help center, were never told about it, and only discover it on the invoice.",
+          "evidence": [
+            { "type": "quote", "item_id": "T-1018", "quote": "The return fee is listed in the merchant terms." },
+            { "type": "quote", "item_id": "T-1017", "quote": "I looked through the help center and found nothing about these charges." },
+            { "type": "quote", "item_id": "S-2003", "quote": "The return fee was a surprise. I'd rather know when it happens than find it on the invoice a week later." }
+          ]
+        }
+      ],
+      "root_cause": "Invoices show return fees under a generic \"Adjustment\" label with no reason or order ID. The fee itself is documented only in the merchant terms, and merchants are not notified when a return happens.",
+      "category": "product_and_operations",
+      "status": "confirmed",
+      "confidence": "high",
+      "confidence_reason": "Agents confirm the invoice labeling and where the fee is documented, and merchants describe the same gap in tickets and the survey.",
+      "open_questions": []
+    },
+    {
+      "problem_id": "P4",
+      "five_whys": [
+        {
+          "why": "Why do couriers believe returns are unpaid?",
+          "because": "Return pay does not appear on the trip receipt.",
+          "evidence": [
+            { "type": "quote", "item_id": "T-1022", "quote": "Return pay is added as a separate adjustment within 72 hours. It doesn't appear on the trip receipt." }
+          ]
+        },
+        {
+          "why": "Why don't couriers recognize the return pay when it arrives?",
+          "because": "It is paid up to 72 hours later as a generic \"Adjustment\", sometimes in a different weekly summary, and the app shows nothing in the meantime.",
+          "evidence": [
+            { "type": "quote", "item_id": "T-1024", "quote": "I checked your account and you received return pay for 4 trips in the last month, listed as \"Adjustment\" in your earnings." },
+            { "type": "quote", "item_id": "T-1026", "quote": "The return pay for Tuesday was added on Thursday as an adjustment, so it falls in next week's summary." },
+            { "type": "quote", "item_id": "R-3001", "quote": "Returns pay shows up as some random Adjustment days later." },
+            { "type": "quote", "item_id": "T-1023", "quote": "Why can't the app show it's pending?" }
+          ]
+        }
+      ],
+      "root_cause": "Return pay is processed as a delayed, generically labeled \"Adjustment\" that is not linked to the trip and has no pending state in the courier app.",
+      "category": "product",
+      "status": "confirmed",
+      "confidence": "high",
+      "confidence_reason": "Agents explain the payment timing and label in three tickets, and couriers describe the same confusion in an app review.",
+      "open_questions": []
+    },
+    {
+      "problem_id": "P5",
+      "five_whys": [
+        {
+          "why": "Why do couriers go to the wrong place?",
+          "because": "The map location shown for the address is not where the building is.",
+          "evidence": [
+            { "type": "quote", "item_id": "T-1027", "quote": "Map pin for 1180 Harbor View Rd took me to a construction site about 400 m from the actual building." },
+            { "type": "quote", "item_id": "S-2104", "quote": "New neighborhoods are a nightmare, the pin is always off." }
+          ]
+        },
+        {
+          "why": "Why is the map location wrong?",
+          "because": "Not evidenced in the feedback. The only pattern is that every affected address is in a newly built development.",
+          "evidence": [
+            { "type": "quote", "item_id": "T-1028", "quote": "I live in the new Harbor View development." },
+            { "type": "quote", "item_id": "T-1029", "quote": "Addresses in the new Maple Ridge subdivision keep showing in the middle of a field on my map." },
+            { "type": "quote", "item_id": "S-2205", "quote": "Driver went to the wrong side of the new complex on Harbor View." }
+          ]
+        }
+      ],
+      "root_cause": "Map locations are wrong for addresses in newly built developments. The feedback does not show why.",
+      "category": "product",
+      "status": "needs_investigation",
+      "confidence": "low",
+      "confidence_reason": "The chain stops at Why 2: no item explains where the map location comes from.",
+      "open_questions": [
+        "Where does the drop-off map location come from: map provider data, merchant-supplied coordinates, or something else?",
+        "What did the mapping team find for the escalated addresses (T-1027, T-1029)?",
+        "How many deliveries to these developments had a location problem that was never reported?"
+      ]
+    },
+    {
+      "problem_id": "P6",
+      "five_whys": [
+        {
+          "why": "Why do couriers end up with orders they can't carry?",
+          "because": "The courier app does not show the order's size before the courier accepts it.",
+          "evidence": [
+            { "type": "quote", "item_id": "S-2103", "quote": "I accept an order and it's 8 bags of groceries or a stack of catering trays." },
+            { "type": "quote", "item_id": "R-3002", "quote": "you can't see the order size before accepting." },
+            { "type": "quote", "item_id": "R-3004", "quote": "Wish I could see how many items or bags before I accept." }
+          ]
+        }
+      ],
+      "root_cause": "The courier offer screen does not show order size (such as item or bag count) before acceptance, so couriers can't decline orders their vehicle can't carry.",
+      "category": "product",
+      "status": "confirmed",
+      "confidence": "medium",
+      "confidence_reason": "Three couriers describe it independently across two sources, but no agent or business context confirms what the offer screen shows.",
+      "open_questions": [
+        "Do merchants send item count or order size in the delivery request? If not, the fix also needs that data from merchants."
+      ]
+    }
+  ],
+  "solutions": [
+    {
+      "problem_id": "P1",
+      "product": [
+        {
+          "title": "Per-order \"ready\" signal in the Merchant Dashboard",
+          "description": "Let store staff mark an order as ready, or adjust its ready time, in the dashboard so dispatch can use it, without depending on POS support for ready_at.",
+          "addresses": "Why 4: the only per-order signal (ready_at) is optional and unavailable to some merchants",
+          "requested_in": ["S-2004", "T-1002"]
+        },
+        {
+          "title": "Prep time schedules",
+          "description": "Allow different prep times by time of day (e.g. lunch peak vs. afternoon) instead of one value per store.",
+          "addresses": "Why 3: prep time is a single value per store",
+          "requested_in": ["T-1007"]
+        },
+        {
+          "title": "Prep time accuracy alerts",
+          "description": "Use the recorded courier arrival and pickup times to flag stores whose prep time is consistently too short, and prompt them to update it.",
+          "addresses": "Why 3: prep time is set once and rarely updated",
+          "requested_in": []
+        }
+      ],
+      "operations": [
+        {
+          "title": "Add prep time to merchant onboarding",
+          "description": "Make setting a realistic prep time a required onboarding step, and explain how it controls courier arrival.",
+          "addresses": "Why 3: merchants aren't told about the setting at setup",
+          "requested_in": []
+        },
+        {
+          "title": "Outreach to stores with repeated long waits",
+          "description": "Contact stores named in repeated wait complaints (e.g. Golden Wok, Bella Pasta, Spice Route) to review their prep time.",
+          "addresses": "Why 2: prep time setting is shorter than real prep time",
+          "requested_in": []
+        },
+        {
+          "title": "POS partner enablement",
+          "description": "Work with POS partners whose integrations don't send ready_at (e.g. TillStack) to add support for it.",
+          "addresses": "Why 4: some integrations don't send ready_at",
+          "requested_in": []
+        }
+      ]
+    },
+    {
+      "problem_id": "P2",
+      "product": [
+        {
+          "title": "Show order notes to couriers",
+          "description": "Display order_notes in the courier app alongside drop-off instructions, or merge them, so consumer notes reach the courier whichever field is used.",
+          "addresses": "Why 2: courier app only displays dropoff_instructions",
+          "requested_in": ["T-1010"]
+        },
+        {
+          "title": "API warning for missing drop-off instructions",
+          "description": "Return a warning in the API response when order_notes is filled but dropoff_instructions is empty.",
+          "addresses": "Why 3: the API gives no warning",
+          "requested_in": ["T-1011"]
+        }
+      ],
+      "operations": [
+        {
+          "title": "Clarify the API docs",
+          "description": "State explicitly which fields couriers can see, and recommend dropoff_instructions for consumer notes.",
+          "addresses": "Why 3: the docs don't say order_notes is hidden from couriers",
+          "requested_in": ["T-1011", "S-2006"]
+        },
+        {
+          "title": "Integration audit and outreach",
+          "description": "Identify merchants who send notes in order_notes with no dropoff_instructions (e.g. Greenleaf Market, Pharmly Pharmacy, Urban Bakes) and contact their developers.",
+          "addresses": "Why 2: integrations use the wrong field",
+          "requested_in": []
+        }
+      ]
+    },
+    {
+      "problem_id": "P3",
+      "product": [
+        {
+          "title": "Itemized invoice lines",
+          "description": "Replace the generic \"Adjustment\" label with the fee type (e.g. \"Return fee\") and the related order ID on each line.",
+          "addresses": "Why 2: invoice labels every fee type as Adjustment with no order detail",
+          "requested_in": ["T-1019", "T-1020", "S-2002"]
+        },
+        {
+          "title": "Return notification",
+          "description": "Notify the merchant in the dashboard when an order is returned, and state that a return fee applies.",
+          "addresses": "Why 3: merchants only discover the fee on the invoice",
+          "requested_in": ["S-2003"]
+        }
+      ],
+      "operations": [
+        {
+          "title": "Document fees in the help center and onboarding",
+          "description": "Publish a help center article on the return fee and other invoice charges, and cover it during merchant onboarding.",
+          "addresses": "Why 3: the fee is documented only in the merchant terms",
+          "requested_in": []
+        }
+      ]
+    },
+    {
+      "problem_id": "P4",
+      "product": [
+        {
+          "title": "Pending return pay on the trip receipt",
+          "description": "Show \"Return pay pending\" with the expected payment date on the trip receipt as soon as a return is completed.",
+          "addresses": "Why 1: return pay doesn't appear on the trip receipt",
+          "requested_in": ["T-1023"]
+        },
+        {
+          "title": "Label and link return pay",
+          "description": "Label the payment \"Return pay\", link it to the trip, and attribute it to the week the trip happened.",
+          "addresses": "Why 2: paid later as a generic Adjustment, sometimes in a different week",
+          "requested_in": []
+        }
+      ],
+      "operations": [
+        {
+          "title": "Explain return pay to couriers",
+          "description": "Add return pay timing to courier help content and onboarding, and update support macros to match.",
+          "addresses": "Why 2: the app shows nothing while pay is pending",
+          "requested_in": []
+        }
+      ]
+    },
+    {
+      "problem_id": "P5",
+      "product": [
+        {
+          "title": "Interim: courier location reports",
+          "description": "Let couriers flag a wrong map pin from the app so that affected addresses are collected for the investigation.",
+          "addresses": "Interim mitigation while the cause behind Why 2 is investigated",
+          "requested_in": []
+        }
+      ],
+      "operations": [
+        {
+          "title": "Trace the source of map locations",
+          "description": "For the escalated addresses, determine where the drop-off location came from and why it differs from the building.",
+          "addresses": "Open question: why is the map location wrong?",
+          "requested_in": []
+        },
+        {
+          "title": "Size the problem",
+          "description": "Measure delivery issues for addresses in the named developments, including ones that were never reported.",
+          "addresses": "Open question: how widespread is this?",
+          "requested_in": []
+        }
+      ]
+    },
+    {
+      "problem_id": "P6",
+      "product": [
+        {
+          "title": "Show order size on the offer",
+          "description": "Show item or bag count, or a size category (e.g. standard, large, catering), on the offer screen before the courier accepts.",
+          "addresses": "Why 1: the offer screen doesn't show order size",
+          "requested_in": ["S-2103", "R-3002", "R-3004"]
+        }
+      ],
+      "operations": [
+        {
+          "title": "Check available order-size data",
+          "description": "Confirm whether merchants already send item counts in delivery requests, and if not, ask high-volume grocery and catering merchants to include them.",
+          "addresses": "Open question: do merchants send order size?",
+          "requested_in": []
+        }
+      ]
+    }
+  ]
+}
+</script>
+
+<script>
+(() => {
+  const $ = (s, el = document) => el.querySelector(s);
+  const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const pretty = (k) => { const s = String(k ?? "").replace(/_/g, " ").trim(); return s ? s[0].toUpperCase() + s.slice(1) : "Unknown"; };
+  const sum = (o) => Object.values(o || {}).reduce((a, b) => a + (Number(b) || 0), 0);
+  const pct = (n, d) => (d ? Math.round((n / d) * 100) : 0);
+  const state = { report: null, items: null, isSample: false, sampleItems: false, sourceColor: {} };
+
+  // ---------- Theme ----------
+  const root = document.documentElement;
+  const systemDark = () => window.matchMedia("(prefers-color-scheme: dark)").matches;
+  const currentTheme = () => root.dataset.theme || (systemDark() ? "dark" : "light");
+  function setTheme(t, save = true) {
+    root.dataset.theme = t;
+    if (save) { try { localStorage.setItem("rca-theme", t); } catch (e) {} }
+    $("#theme-light").setAttribute("aria-pressed", String(t === "light"));
+    $("#theme-dark").setAttribute("aria-pressed", String(t === "dark"));
+  }
+  $("#theme-light").onclick = () => setTheme("light");
+  $("#theme-dark").onclick = () => setTheme("dark");
+  setTheme(currentTheme(), false);
+
+  // ---------- Banner ----------
+  function banner(kind, html) { const b = $("#banner"); b.className = "banner show " + kind; b.innerHTML = html; }
+
+  // ---------- Feedback CSV ----------
+  function parseCSV(text) {
+    const rows = []; let row = [], field = "", q = false;
+    for (let i = 0; i < text.length; i++) {
+      const c = text[i];
+      if (q) { if (c === '"') { if (text[i + 1] === '"') { field += '"'; i++; } else q = false; } else field += c; }
+      else if (c === '"') q = true;
+      else if (c === ",") { row.push(field); field = ""; }
+      else if (c === "\n" || c === "\r") { if (c === "\r" && text[i + 1] === "\n") i++; row.push(field); rows.push(row); row = []; field = ""; }
+      else field += c;
+    }
+    if (field !== "" || row.length) { row.push(field); rows.push(row); }
+    return rows.filter((r) => r.some((f) => f !== ""));
+  }
+  function itemsFromCSV(text) {
+    const rows = parseCSV(text.trim().replace(/^﻿/, ""));
+    const head = rows.shift()?.map((h) => h.trim().toLowerCase()) || [];
+    const col = (...names) => names.map((n) => head.indexOf(n)).find((i) => i >= 0) ?? -1;
+    const id = col("item_id", "ticket_id", "id"), text_ = col("text", "conversation", "body", "comment", "response");
+    if (id < 0 || text_ < 0) return null;
+    const src = col("source", "channel"), au = col("author_type", "requester_type"), ti = col("title", "subject", "question");
+    const out = {};
+    for (const r of rows) out[r[id]] = { text: r[text_] || "", source: src >= 0 ? r[src] : "", author: au >= 0 ? r[au] : "", title: ti >= 0 ? r[ti] : "" };
+    return out;
+  }
+
+  // ---------- Report normalization (accepts the older ticket-only format too) ----------
+  function normalize(raw) {
+    const r = JSON.parse(JSON.stringify(raw));
+    const m = (r.meta = r.meta || {});
+    m.items_analyzed = m.items_analyzed ?? m.tickets_analyzed ?? 0;
+    m.by_source = m.by_source || (m.tickets_analyzed ? { support_ticket: m.tickets_analyzed } : {});
+    m.by_author_type = m.by_author_type || m.requester_breakdown || {};
+    r.problems = (r.problems || []).map((p) => {
+      const ids = p.item_ids || p.ticket_ids || [];
+      const fromItems = (key) => { if (!state.items) return null; const o = {}; ids.forEach((i) => { const it = state.items[i]; if (it && it[key]) o[it[key]] = (o[it[key]] || 0) + 1; }); return Object.keys(o).length ? o : null; };
+      return {
+        ...p, item_ids: ids, item_count: p.item_count ?? p.ticket_count ?? ids.length,
+        by_source: p.by_source || fromItems("source") || (p.ticket_ids ? { support_ticket: ids.length } : { unknown: ids.length }),
+        by_author_type: p.by_author_type || fromItems("author") || Object.fromEntries((p.requester_types || []).map((t) => [t, null])),
+        evidence: (p.evidence || []).map((e) => ({ ...e, item_id: e.item_id ?? e.ticket_id })),
+      };
+    });
+    r.other_items = r.other_items || (r.other_tickets || []).map((o) => ({ ...o, item_id: o.item_id ?? o.ticket_id }));
+    r.root_causes = (r.root_causes || []).map((c) => ({
+      ...c,
+      five_whys: (c.five_whys || []).map((w) => ({ ...w, evidence: (w.evidence || []).map((e) => ({ ...e, item_id: e.item_id ?? e.ticket_id, type: e.type || (e.source === "business_context" ? "business_context" : "quote") })) })),
+    }));
+    r.solutions = r.solutions || [];
+    return r;
+  }
+  function validate(r) {
+    const errs = [];
+    if (!r || typeof r !== "object") return ["Not a JSON object."];
+    for (const k of ["meta", "summary", "problems", "root_causes", "solutions"]) if (!(k in r)) errs.push(`Missing "${k}".`);
+    if (Array.isArray(r.problems)) r.problems.forEach((p, i) => { if (!p.id) errs.push(`problems[${i}] has no "id".`); });
+    return errs;
+  }
+
+  // Source colors follow the entity, in a fixed order, never by rank.
+  const SOURCE_ORDER = ["support_ticket", "survey", "app_review", "comment", "social", "interview", "email", "chat"];
+  function assignSourceColors(r) {
+    const keys = new Set(Object.keys(r.meta.by_source || {}));
+    r.problems.forEach((p) => Object.keys(p.by_source || {}).forEach((k) => keys.add(k)));
+    const ordered = [...keys].sort((a, b) => { const ia = SOURCE_ORDER.indexOf(a), ib = SOURCE_ORDER.indexOf(b); return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib) || a.localeCompare(b); });
+    state.sourceColor = {};
+    ordered.forEach((k, i) => (state.sourceColor[k] = i < 8 ? `var(--s${i + 1})` : "var(--muted)"));
+    state.sourceOrder = ordered;
+  }
+  const srcColor = (k) => state.sourceColor[k] || "var(--muted)";
+
+  function loadReport(obj, { sample = false } = {}) {
+    const errs = validate(obj);
+    if (errs.length) { banner("err", "<strong>Couldn't load report.</strong> " + esc(errs.join(" "))); return false; }
+    if (sample) { state.items = itemsFromCSV($("#sample-items").textContent); state.sampleItems = true; }
+    else if (state.sampleItems) { state.items = null; state.sampleItems = false; }
+    state.raw = obj; state.report = normalize(obj); state.isSample = sample;
+    assignSourceColors(state.report);
+    render();
+    if (sample) banner("info", "Showing the <strong>sample report</strong> for a fictional delivery company: 54 support tickets, survey answers and app reviews. Every quote has been checked against the sample feedback; click an item ID to read the original. Use <strong>Load report</strong> to view your own.");
+    else banner("ok", "Report loaded." + (state.items ? " Quotes are checked against the loaded feedback." : " Tip: load your feedback CSV with <strong>Verify quotes</strong> to check every quote."));
+    return true;
+  }
+  const parseJSONText = (text) => JSON.parse(text.trim().replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/, ""));
+  function loadItems(text) {
+    const t = itemsFromCSV(text);
+    if (!t) { banner("err", "<strong>Couldn't read the feedback file.</strong> The CSV needs an <code>item_id</code> column and a <code>text</code> column (older files with <code>ticket_id</code> and <code>conversation</code> also work)."); return; }
+    state.items = t; state.sampleItems = false;
+    state.report = normalize(state.raw); assignSourceColors(state.report);
+    if ($("#dlg-check").open) { refreshCsvNote(); return; }
+    if (state.view === "check" && state.lastCheckText) {
+      runCheck(state.lastCheckText);
+      banner("ok", `Loaded ${Object.keys(t).length} feedback items. The checks below now use your file.`);
+      return;
+    }
+    render();
+    const { total, missing } = verifyStats();
+    banner(missing ? "err" : "ok", `Loaded ${Object.keys(t).length} feedback items. ` +
+      (missing ? `<strong>${missing} of ${total} quotes ${missing === 1 ? "was" : "were"} not found word-for-word</strong> in their item. ${missing === 1 ? "It is" : "They are"} highlighted in red.` : `<strong>All ${total} quotes were found word-for-word</strong> in their items. Click an item ID to read the original.`));
+  }
+
+  // ---------- Quote verification ----------
+  const norm = (s) => String(s).replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/\s+/g, " ").trim();
+  function quoteStatus(id, quote) { if (!state.items) return null; const it = state.items[id]; if (!it) return "miss"; return norm(it.text).includes(norm(quote)) ? "ok" : "miss"; }
+  function allQuotes() {
+    const r = state.report, out = [];
+    r.problems.forEach((p) => p.evidence.forEach((e) => out.push(e)));
+    r.root_causes.forEach((c) => c.five_whys.forEach((w) => w.evidence.forEach((e) => { if (e.type !== "business_context") out.push(e); })));
+    return out;
+  }
+  function verifyStats() { const qs = allQuotes(); return { total: qs.length, missing: qs.filter((e) => quoteStatus(e.item_id, e.quote) === "miss").length }; }
+
+  // ---------- Small render helpers ----------
+  const idChip = (id, quote = "") => state.items && state.items[id]
+    ? `<button class="tid" data-item="${esc(id)}" data-quote="${esc(quote)}">${esc(id)}</button>` : `<span class="tid">${esc(id)}</span>`;
+  const srcChip = (k, n) => `<span class="chip"><span class="sw" style="background:${srcColor(k)}"></span>${esc(pretty(k))}${n != null ? ` · ${n}` : ""}</span>`;
+  function quoteBlock(e, showSpeaker = true) {
+    const st = quoteStatus(e.item_id, e.quote);
+    const badge = st === "ok" ? `<span class="vbadge ok">✓ Verified</span>` : st === "miss" ? `<span class="vbadge miss">✗ Not found in item</span>` : "";
+    const src = e.source || state.items?.[e.item_id]?.source;
+    return `<blockquote class="q ${st || ""}">“${esc(e.quote)}”
+      <div class="qmeta">${idChip(e.item_id, e.quote)}${src ? srcChip(src) : ""}${showSpeaker && e.speaker ? `<span>${esc(e.speaker)}</span>` : ""}${badge}</div></blockquote>`;
+  }
+  const typeBadges = (c) => { const s = String(c || ""); return (s.includes("product") ? `<span class="badge product">Product</span>` : "") + (s.includes("operation") ? `<span class="badge ops">Operations</span>` : ""); };
+  const statusBadge = (c) => c.status === "confirmed" ? `<span class="badge good">✓ Confirmed</span>` : `<span class="badge warn">⚠ Needs investigation</span>`;
+  const confMeter = (lvl) => { const n = { high: 3, medium: 2, low: 1 }[String(lvl).toLowerCase()] || 0; return `<span class="conf" title="Confidence: ${esc(lvl || "n/a")}">${[1, 2, 3].map((i) => `<i class="${i <= n ? "on" : ""}"></i>`).join("")}</span> <span style="font-size:12.5px;color:var(--ink-2)">${esc(pretty(lvl || "n/a"))}</span>`; };
+  const byProblem = (arr) => Object.fromEntries((arr || []).map((x) => [x.problem_id, x]));
+  const tipAttr = (s) => `data-tip="${esc(s)}"`;
+
+  // Horizontal bar list: one bar per row, value at the tip.
+  function barList(rows, max, { colorOf, tipOf }) {
+    return `<div class="hbars">${rows.map(([k, v]) => `
+      <div class="lab"><span class="sw" style="background:${colorOf(k)}"></span><span class="t">${esc(pretty(k))}</span></div>
+      <div class="track"><div class="bar" style="width:${Math.max(1, (v / max) * 88)}%"><div class="seg-b" style="flex:1;background:${colorOf(k)};border-radius:0 4px 4px 0" ${tipAttr(tipOf(k, v))}></div></div><span class="val">${v}</span></div>`).join("")}</div>`;
+  }
+
+  // Problem colors follow the problem ID in a fixed order, never its rank.
+  const PCOL = ["#6250d6", "#d55181", "#1baf7a", "#eda100", "#2a78d6", "#eb6834", "#008300", "#e34948"];
+  const pcol = (id) => PCOL[(parseInt(String(id).replace(/\D/g, ""), 10) - 1) % PCOL.length] || "#888780";
+  const inkOn = (hex) => { const n = parseInt(hex.slice(1), 16); return (0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) > 150 ? "#141413" : "#ffffff"; };
+  const ppill = (id) => `<span class="ppill" style="background:${pcol(id)};color:${inkOn(pcol(id))}">${esc(id)}</span>`;
+  function donut(parts, size, thick, center = "") {
+    const r = (size - thick) / 2, c = 2 * Math.PI * r, tot = parts.reduce((a, p) => a + p.value, 0) || 1; let off = 0;
+    const segs = parts.map((p) => { const len = (p.value / tot) * c, gap = parts.length > 1 ? Math.min(2, len / 2) : 0;
+      const s = `<circle r="${r}" fill="none" stroke="${p.color}" stroke-width="${thick}" stroke-dasharray="${Math.max(0, len - gap)} ${c}" stroke-dashoffset="${-off}" ${tipAttr(`${p.label}: ${p.value} items (${pct(p.value, tot)}%)`)}></circle>`; off += len; return s; }).join("");
+    return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" role="img" aria-label="${esc(parts.map((p) => `${p.label} ${p.value}`).join(", "))}"><g transform="translate(${size / 2} ${size / 2}) rotate(-90)">${segs}</g>${center}</svg>`;
+  }
+
+  // ---------- Render (Template D: executive bento) ----------
+  function render() {
+    state.view = "report";
+    const r = state.report, m = r.meta, s = r.summary || {}, problems = r.problems;
+    const rcMap = byProblem(r.root_causes), solMap = byProblem(r.solutions);
+    const total = Number(m.items_analyzed) || 0;
+    const inProblems = problems.reduce((a, p) => a + (Number(p.item_count) || 0), 0);
+    const confirmed = r.root_causes.filter((c) => c.status === "confirmed").length;
+    const nProd = r.solutions.reduce((a, x) => a + (x.product || []).length, 0), nOps = r.solutions.reduce((a, x) => a + (x.operations || []).length, 0);
+    const sources = state.sourceOrder.filter((k) => (m.by_source || {})[k] != null || problems.some((p) => p.by_source[k]));
+    const authors = Object.keys(m.by_author_type || {});
+    problems.forEach((p) => Object.keys(p.by_author_type || {}).forEach((a) => { if (!authors.includes(a)) authors.push(a); }));
+    const AUTHOR_COL = ["#6250d6", "#e87ba4", "#eda100", "#1baf7a", "#2a78d6"];
+    document.title = (m.product ? m.product + " · " : "") + "Feedback RCA";
+
+    // Treemap: the two largest problems are tall blocks; the rest fill a two-row grid, column by column.
+    const big = problems.slice(0, 2), rest = problems.slice(2), cols = big.map((p) => Math.max(1, p.item_count) + "fr");
+    for (let i = 0; i < rest.length; i += 2) cols.push(Math.max(1, rest[i].item_count, rest[i + 1]?.item_count || 0) + "fr");
+    const tree = problems.map((p, i) => { const c = pcol(p.id); return `<div class="${i < 2 ? "" : "sm"}" data-jump="problem-${esc(p.id)}" ${tipAttr(`${p.id} · ${p.title}: ${p.item_count} items (${pct(p.item_count, total)}%)`)} style="background:${c};color:${inkOn(c)};${i < 2 ? "grid-row:span 2;" : ""}"><span>${esc(p.id)} · ${esc(p.title)}</span><b>${p.item_count}</b></div>`; }).join("");
+
+    // Heatmap scale
+    const heatMax = Math.max(1, ...problems.flatMap((p) => authors.map((a) => Number(p.by_author_type?.[a]) || 0)));
+    const heatCell = (v, p, a) => {
+      if (v == null) return `<td class="cell" ${tipAttr(`${p.id} · ${pretty(a)}: reported`)}>●</td>`;
+      if (!v) return `<td class="cell zero">–</td>`;
+      const f = 14 + 76 * (v / heatMax);
+      return `<td class="cell" style="background:color-mix(in srgb, var(--seq) ${f}%, var(--surface));color:${f > 52 ? "#fff" : "var(--ink)"}" ${tipAttr(`${p.id} · ${pretty(a)}: ${v} of ${p.item_count} items`)}>${v}</td>`;
+    };
+    const findings = (s.key_findings || []).map((f) => { const mm = String(f).match(/^((?:P\d+)(?:\s*\+\s*P\d+)*)\s*·\s*(.*)$/s); return mm ? { ids: mm[1].split(/\s*\+\s*/), text: mm[2] } : { ids: [], text: f }; });
+
+    $("#app").innerHTML = `
+      <section id="summary">
+        <h1>${esc(m.title || "Customer Feedback Root Cause Analysis")}</h1>
+        <div class="meta">${m.product ? `<strong>${esc(m.product)}</strong>` : ""}${m.period ? `<span>${esc(m.period)}</span>` : ""}${state.isSample ? `<span class="badge">Sample data</span>` : ""}</div>
+        <div class="bento">
+          <div class="tile hero span3 row2"><div class="eyebrow">The headline</div>
+            <div><div class="big">${inProblems}<small> / ${total}</small></div><p>${esc(s.headline || "")}</p></div></div>
+          <div class="tile stat" style="background:var(--good-soft);color:var(--good-ink)"><div class="v">${confirmed}</div><div class="l">root causes confirmed</div></div>
+          <div class="tile stat" style="background:var(--warn-soft);color:var(--warn-ink)"><div class="v">${r.root_causes.length - confirmed}</div><div class="l">${r.root_causes.length - confirmed === 1 ? "needs" : "need"} investigation</div></div>
+          <div class="tile stat" style="background:var(--surface-2)"><div class="v">${problems.length}</div><div class="l" style="color:var(--ink-2)">main problems</div></div>
+          <div class="tile stat" style="background:var(--product-soft);color:var(--product-ink)"><div class="v">${nProd}</div><div class="l">product fixes</div></div>
+          <div class="tile stat" style="background:var(--ops-soft);color:var(--ops-ink)"><div class="v">${nOps}</div><div class="l">operations fixes</div></div>
+          <div class="tile stat" style="background:var(--surface-2)"><div class="v">${pct(inProblems, total)}%</div><div class="l" style="color:var(--ink-2)">of feedback explained</div></div>
+
+          <div class="tile span4"><p class="tl">Problems, sized by mentions</p><p class="tsub">Click a block to jump to that problem</p><div class="tree" style="grid-template-columns:${cols.join(" ")}">${tree}</div></div>
+          <div class="tile span2"><p class="tl">Feedback by source</p><p class="tsub">${total} items from ${sources.length} ${sources.length === 1 ? "channel" : "channels"}</p>
+            <div class="donut-box">${donut(sources.map((k) => ({ value: Number(m.by_source[k]) || 0, color: srcColor(k), label: pretty(k) })), 130, 22, `<text x="65" y="72" text-anchor="middle" font-size="22" font-weight="700" fill="currentColor">${total}</text>`)}</div>
+            <div class="dlegend">${sources.map((k) => `<span><span class="sw" style="background:${srcColor(k)}"></span>${esc(pretty(k))}<b>${Number(m.by_source[k]) || 0}</b></span>`).join("")}</div></div>
+
+          <div class="tile span6"><p class="tl">Key findings</p><p class="tsub">Everything in this report is backed by quotes from the feedback</p>
+            <ul class="findings">${findings.map((f) => `<li><span class="fpid" style="display:flex;gap:4px">${f.ids.map(ppill).join("")}</span><span>${esc(f.text)}</span></li>`).join("")}</ul></div>
+        </div>
+      </section>
+
+      <section id="breakdown">
+        <div class="bento">
+          ${authors.length ? `<div class="tile span4"><p class="tl">Who reports each problem</p><p class="tsub">Items per problem and user group. Darker cells mean more items.</p>
+            <div class="tbl-wrap"><table class="heat">
+              <thead><tr><th>Problem</th>${authors.map((a) => `<th style="text-align:center">${esc(pretty(a))}</th>`).join("")}<th>Sources</th></tr></thead>
+              <tbody>${problems.map((p) => `<tr><td class="rowlab">${ppill(p.id)} ${esc(p.title)}</td>${authors.map((a) => heatCell(p.by_author_type?.[a] === null ? null : Number(p.by_author_type?.[a]) || 0, p, a)).join("")}
+                <td><div class="chips">${sources.filter((k) => p.by_source[k]).map((k) => `<span class="sw" style="background:${srcColor(k)}" ${tipAttr(`${pretty(k)}: ${p.by_source[k]}`)}></span>`).join("")}</div></td></tr>`).join("")}</tbody>
+            </table></div></div>
+          <div class="tile span2"><p class="tl">Feedback by user group</p><p class="tsub">Who wrote it</p>
+            <div class="donut-box">${donut(authors.map((a, i) => ({ value: Number(m.by_author_type[a]) || 0, color: AUTHOR_COL[i % AUTHOR_COL.length], label: pretty(a) })), 130, 22)}</div>
+            <div class="dlegend">${authors.map((a, i) => `<span><span class="sw" style="background:${AUTHOR_COL[i % AUTHOR_COL.length]}"></span>${esc(pretty(a))}<b>${Number(m.by_author_type[a]) || 0}</b></span>`).join("")}</div></div>` : ""}
+        </div>
+      </section>
+
+      <section id="details">
+        <div class="sec-head"><div class="sec-num" style="background:var(--sec-rc)">→</div><h2 style="color:var(--sec-rc)">Problem → root cause → solutions</h2></div>
+        <p class="sec-sub">One row per problem, largest first. Each root cause is traced with the 5 Whys and stops where the evidence stops.</p>
+        ${problems.map((p) => {
+          const c = rcMap[p.id], x = solMap[p.id] || {}, col = pcol(p.id), inv = c && c.status !== "confirmed";
+          const sol = (o, kind) => `<div class="d-sol ${kind}"><span class="k">${kind === "product" ? "Product" : "Operations"}</span><b>${esc(o.title)}</b>${esc(o.description)}
+            ${o.addresses ? `<div class="a"><strong>Breaks:</strong> ${esc(o.addresses)}</div>` : ""}
+            ${(o.requested_in || []).length ? `<div class="a">Requested by users in ${o.requested_in.map((i) => idChip(i)).join(" ")}</div>` : ""}</div>`;
+          return `
+          <div class="d-row" style="--pc:${col}">
+            <article class="tile d-tile" id="problem-${esc(p.id)}">
+              <div class="d-top">${ppill(p.id)}<span class="d-lab">Problem</span></div>
+              <h3>${esc(p.title)}</h3>
+              <div class="d-cnt">${p.item_count} <small>items · ${pct(p.item_count, total)}%</small></div>
+              <div class="d-mini">${sources.filter((k) => p.by_source[k]).map((k) => `<span style="flex:${p.by_source[k]};background:${srcColor(k)}" ${tipAttr(`${pretty(k)}: ${p.by_source[k]}`)}></span>`).join("")}</div>
+              <div class="chips">${sources.filter((k) => p.by_source[k]).map((k) => srcChip(k, p.by_source[k])).join("")}${Object.entries(p.by_author_type || {}).map(([a, n]) => `<span class="chip">${esc(pretty(a))}${n != null ? ` · ${n}` : ""}</span>`).join("")}</div>
+              <p class="desc" style="font-size:14px;color:var(--ink-2)">${esc(p.description)}</p>
+              ${p.evidence.slice(0, 1).map((e) => quoteBlock(e)).join("")}
+              ${p.evidence.length > 1 ? `<details class="more"><summary>${p.evidence.length - 1} more ${p.evidence.length - 1 === 1 ? "quote" : "quotes"}</summary>${p.evidence.slice(1).map((e) => quoteBlock(e)).join("")}</details>` : ""}
+              <details class="more"><summary>All ${p.item_ids.length} items</summary><div class="chips" style="margin-top:8px">${p.item_ids.map((i) => idChip(i)).join("")}</div></details>
+            </article>
+            <article class="tile d-tile" id="rc-${esc(p.id)}">
+              ${c ? `<div class="d-top">${statusBadge(c)}<span class="d-lab">Root cause</span></div>
+              <p class="d-rc">${esc(c.root_cause)}</p>
+              <div class="chips" style="align-items:center">${confMeter(c.confidence)} ${typeBadges(c.category)}</div>
+              ${c.confidence_reason ? `<p class="desc" style="font-size:13px;color:var(--ink-2);margin-top:8px">${esc(c.confidence_reason)}</p>` : ""}
+              ${(c.open_questions || []).length ? `<div class="rc-box inv" style="margin-top:10px"><div class="label">Open questions</div><ul class="oq">${c.open_questions.map((q) => `<li>${esc(q)}</li>`).join("")}</ul></div>` : ""}
+              <details class="more" ${inv ? "open" : ""}><summary>The ${c.five_whys.length} ${c.five_whys.length === 1 ? "why" : "whys"}, with evidence</summary>
+                <ol class="whys">${c.five_whys.map((w, i) => { const q = w.evidence.filter((e) => e.type !== "business_context"), ctx = w.evidence.filter((e) => e.type === "business_context");
+                  return `<li data-n="${i + 1}"><div class="why">${esc(w.why)}</div><p class="because ${/not evidenced/i.test(w.because || "") ? "stop" : ""}">${esc(w.because)}</p>
+                    ${q.length || ctx.length ? `<details><summary>Evidence (${q.length}${ctx.length ? " + context" : ""})</summary>${q.map((e) => quoteBlock(e, false)).join("")}${ctx.map((e) => `<div class="ctx">Business context: ${esc(e.note)}</div>`).join("")}</details>` : ""}</li>`; }).join("")}</ol>
+              </details>` : `<p class="empty">No root cause analysis for this problem.</p>`}
+            </article>
+            <article class="tile d-tile" id="sol-${esc(p.id)}">
+              <div class="d-top">${inv ? `<span class="badge warn">⚠ Investigate first</span>` : "<span></span>"}<span class="d-lab">Solutions</span></div>
+              ${(x.product || []).map((o) => sol(o, "product")).join("")}${(x.operations || []).map((o) => sol(o, "ops")).join("")}
+              ${!(x.product || []).length && !(x.operations || []).length ? `<p class="empty">None proposed.</p>` : ""}
+            </article>
+          </div>`; }).join("")}
+      </section>
+
+      ${r.other_items.length ? `
+      <section id="other">
+        <div class="sec-head"><div class="sec-num" style="background:var(--muted)">·</div><h2 style="color:var(--ink-2)">Other feedback</h2></div>
+        <p class="sec-sub">One-off issues and non-problems, kept out of the analysis.</p>
+        <div class="card" style="padding:0;overflow:hidden"><div class="tbl-wrap"><table>
+          <thead><tr><th style="width:110px">Item</th><th style="width:160px">Source</th><th>Reason</th></tr></thead>
+          <tbody>${r.other_items.map((o) => { const src = o.source || state.items?.[o.item_id]?.source; return `<tr><td>${idChip(o.item_id)}</td><td>${src ? srcChip(src) : "–"}</td><td>${esc(o.reason)}</td></tr>`; }).join("")}</tbody>
+        </table></div></div>
+      </section>` : ""}
+    `;
+  }
+
+  // =====================================================================
+  // Step checker: paste any step's answer, get automatic checks, a
+  // ready-to-send fix message, a review checklist and a readable view.
+  // =====================================================================
+  const STEP_NAMES = { 1: "Extract feedback facts", 2: "Identify main problems", 3: "Root causes (5 Whys)", 4: "Final report" };
+  state.steps = (() => { try { return JSON.parse(sessionStorage.getItem("rca-steps") || "{}"); } catch (e) { return {}; } })();
+  const saveSteps = () => { try { sessionStorage.setItem("rca-steps", JSON.stringify(state.steps)); } catch (e) {} };
+  const idOf = (x) => x?.item_id ?? x?.ticket_id;
+  const plural = (n, w, ws = w + "s") => `${n} ${n === 1 ? w : ws}`;
+  const listFmt = (arr, n = 10) => arr.slice(0, n).join(", ") + (arr.length > n ? ` and ${arr.length - n} more` : "");
+
+  // Pull the JSON out of a pasted answer: the largest ```json block, all blocks
+  // joined (an answer split over several messages), or the outermost {...} / [...].
+  function extractJSON(text) {
+    const t = String(text || "");
+    const blocks = [...t.matchAll(/```[a-zA-Z]*[ \t]*\r?\n([\s\S]*?)```/g)].map((m) => m[1].trim()).filter((b) => /^[\[{"]/.test(b));
+    const tries = [...[...blocks].sort((a, b) => b.length - a.length), blocks.join("\n")];
+    for (const c of tries) { try { return JSON.parse(c); } catch (e) {} }
+    const start = t.search(/[\[{]\s*["\[{]/);
+    if (start < 0) throw new Error("No JSON found. Paste the AI's whole answer, including the JSON code block.");
+    const close = t[start] === "[" ? "]" : "}";
+    try { return JSON.parse(t.slice(start, t.lastIndexOf(close) + 1)); }
+    catch (e) { throw new Error("The JSON couldn't be read (" + e.message + "). The answer may be cut off: ask the AI to “resend the complete JSON in one code block”, then paste it again."); }
+  }
+  function detectStep(o) {
+    if (Array.isArray(o)) return o.length && o[0] && typeof o[0] === "object" && idOf(o[0]) ? 1 : 0;
+    if (!o || typeof o !== "object") return 0;
+    if (o.meta || o.solutions || o.summary) return 4;
+    if (o.root_causes && !o.problems) return 3;
+    if (o.problems) return 2;
+    return 0;
+  }
+  // Use the loaded CSV only if it matches this data (the built-in sample may be loaded instead of the user's file).
+  function itemsFor(ids) {
+    if (!state.items || !ids.length) return null;
+    const known = ids.filter((i) => state.items[i]).length;
+    return known >= ids.length * 0.5 ? state.items : null;
+  }
+  function Checks() {
+    const list = [];
+    const add = (status) => (label, detail = "", fix = "") => list.push({ status, label, detail, fix });
+    return { list, pass: add("pass"), fail: add("fail"), warn: add("warn"), info: add("info") };
+  }
+  const NEED_CSV = "Load your feedback CSV (button above) to run this check.";
+  function checkQuotes(c, quotes, items, label) {
+    if (!quotes.length) { c.warn(`${label}: none found`, "Every claim should be backed by at least one quote."); return; }
+    if (!items) { c.warn(`${label}: not checked yet`, NEED_CSV); return; }
+    const bad = quotes.filter((q) => !items[q.item_id] || !norm(items[q.item_id].text).includes(norm(q.quote)));
+    if (!bad.length) c.pass(`${label}: all ${quotes.length} are word-for-word`);
+    else c.fail(`${label}: ${bad.length} of ${quotes.length} not found word-for-word`,
+      bad.slice(0, 5).map((q) => `${q.item_id}: “${q.quote}”`).join("\n") + (bad.length > 5 ? `\n…and ${bad.length - 5} more` : ""),
+      `These quotes are not word-for-word in their item. Replace each one with an exact quote copied from that item, or remove it:\n${bad.map((q) => `- ${q.item_id}: "${q.quote}"`).join("\n")}`);
+  }
+  function checkCoverage(c, listed, universe, where) {
+    const seen = {}, dupes = [];
+    listed.forEach((i) => { if (seen[i]) dupes.push(i); seen[i] = true; });
+    if (universe) {
+      const missing = universe.filter((i) => !seen[i]);
+      const invented = Object.keys(seen).filter((i) => !universe.includes(i));
+      if (missing.length) c.fail(`${plural(missing.length, "item")} missing`, listFmt(missing), `These items are missing. Include every one of them: ${missing.join(", ")}.`);
+      else c.pass(`Every item from ${where} is included (${universe.length})`);
+      if (invented.length) c.fail(`${plural(invented.length, "ID")} not found in ${where}`, listFmt(invented), `These IDs don't exist in ${where}: ${invented.join(", ")}. Remove them or correct the ID.`);
+      else c.pass("No invented IDs");
+    } else c.warn("Completeness not checked yet", NEED_CSV);
+    if (dupes.length) c.fail(`${plural(new Set(dupes).size, "item")} listed more than once`, listFmt([...new Set(dupes)]), `Each item must appear exactly once. These appear more than once: ${[...new Set(dupes)].join(", ")}.`);
+    else c.pass("No item is listed twice");
+  }
+  const isAgentQuote = (items, id, quote) => (items?.[id]?.text || "").split("\n").some((l) => /^\[agent\]/i.test(l.trim()) && norm(l).includes(norm(quote)));
+  // Preview of an item: the author's first message (tickets also contain agent replies).
+  const snippet = (items, id) => { const t = (items?.[id]?.text || "").split("\n").find((l) => l.trim()) || ""; const s = t.replace(/^\[[^\]]+\]\s*/, "").replace(/\s+/g, " "); return s.length > 180 ? s.slice(0, 180) + "…" : s; };
+
+  // ---------- Step 1 ----------
+  function checkStep1(arr) {
+    const c = Checks();
+    const recs = arr.map((r) => ({ ...r, item_id: idOf(r) }));
+    const ids = recs.map((r) => r.item_id);
+    const items = itemsFor(ids);
+    c.pass(`JSON read: ${plural(recs.length, "record")}`);
+    if (items) {
+      const n = Object.keys(items).length;
+      if (recs.length === n) c.pass(`Record count matches the feedback file (${n})`);
+      else c.fail(`${plural(recs.length, "record")}, but the feedback file has ${n} items`, "", `Your JSON has ${recs.length} records, but the feedback file has ${n} items. Return exactly one record for every item.`);
+    }
+    checkCoverage(c, ids, items ? Object.keys(items) : null, "the feedback file");
+    const incomplete = recs.filter((r) => !r.item_id || typeof r.is_problem !== "boolean" || !r.issue || !Array.isArray(r.key_quotes));
+    if (incomplete.length) c.fail(`${plural(incomplete.length, "record")} missing required fields`, listFmt(incomplete.map((r) => r.item_id || "(no ID)")), `These records are missing required fields (item_id, is_problem, issue or key_quotes): ${incomplete.map((r) => r.item_id || "(no ID)").join(", ")}. Fill them in using the format from the prompt.`);
+    else c.pass("Every record has the required fields");
+    if (items) {
+      const mm = recs.filter((r) => { const it = items[r.item_id]; return it && ((r.source && it.source && r.source !== it.source) || (r.author_type && it.author && r.author_type !== it.author)); });
+      if (mm.length) c.warn(`${plural(mm.length, "record")} with a different source or author type than the file`, listFmt(mm.map((r) => r.item_id)), `Copy source and author_type exactly from the feedback file for: ${mm.map((r) => r.item_id).join(", ")}.`);
+      else c.pass("Sources and author types match the file");
+    }
+    const quotes = recs.flatMap((r) => [...(r.key_quotes || []), ...(r.stated_explanations || [])].filter((q) => q && q.quote).map((q) => ({ item_id: r.item_id, quote: q.quote })));
+    checkQuotes(c, quotes, items, "Quotes");
+    const np = recs.filter((r) => r.is_problem === false);
+    c.info(`${plural(np.length, "item")} marked “not a problem”`, "Review them below: they should only be compliments, how-to questions or requests without a failure.");
+    const qStat = (r) => { const qs = [...(r.key_quotes || []), ...(r.stated_explanations || [])].filter((q) => q && q.quote); if (!items) return `${qs.length}`; const bad = qs.filter((q) => !items[r.item_id] || !norm(items[r.item_id].text).includes(norm(q.quote))).length; return bad ? `<span class="vbadge miss">✗ ${bad}</span> of ${qs.length}` : `<span class="vbadge ok">✓ ${qs.length}</span>`; };
+    const row = (r) => `<tr class="${items && !items[r.item_id] ? "flag" : ""}"><td>${idChip(r.item_id)}</td><td>${r.source ? srcChip(r.source) : "–"}</td><td>${esc(pretty(r.author_type))}</td><td>${r.is_problem === false ? "No" : "Yes"}</td><td style="min-width:240px">${esc(r.issue)}</td><td class="num">${(r.stated_explanations || []).filter((e) => !e.is_author_claim).length} / ${(r.stated_explanations || []).filter((e) => e.is_author_claim).length}</td><td class="num" style="white-space:nowrap">${qStat(r)}</td></tr>`;
+    const view = `
+      <div class="card"><p class="card-title">Marked “not a problem”</p><p class="card-sub">Check that none of these describe something going wrong.</p>
+        ${np.length ? `<div class="tbl-wrap"><table><thead><tr><th>Item</th><th>Issue</th><th>Original text</th></tr></thead><tbody>${np.map((r) => `<tr><td>${idChip(r.item_id)}</td><td>${esc(r.issue)}</td><td class="snip">${esc(snippet(items, r.item_id))}</td></tr>`).join("")}</tbody></table></div>` : `<p class="empty">None.</p>`}</div>
+      <div class="card" style="margin-top:14px;padding:0;overflow:hidden"><div style="padding:16px 20px 4px"><p class="card-title">All records</p><p class="card-sub">Explanations = agent explanations / author claims. Click an ID to read the original.</p></div>
+        <div class="tbl-wrap"><table><thead><tr><th>Item</th><th>Source</th><th>Author</th><th>Problem?</th><th>Issue</th><th class="num">Explanations</th><th class="num">Quotes</th></tr></thead><tbody>${recs.map(row).join("")}</tbody></table></div></div>`;
+    return { checks: c.list, items, view, review: [
+      "Each item’s <strong>issue</strong> matches what the original text says (open a few IDs to compare).",
+      "Items marked <strong>not a problem</strong> really are compliments, how-to questions or requests without a failure.",
+      "Agent explanations are counted where a support agent explains <em>why</em> something happened.",
+    ] };
+  }
+
+  // ---------- Step 2 ----------
+  function checkStep2(o) {
+    const c = Checks();
+    if (!Array.isArray(o.problems) || !o.problems.length) { c.fail("No problems found", "", 'Return the JSON with a non-empty "problems" array, in the format from the prompt.'); return { checks: c.list, items: null, view: "", review: [] }; }
+    const problems = o.problems.map((p) => ({ ...p, item_ids: p.item_ids || p.ticket_ids || [], evidence: (p.evidence || []).map((e) => ({ ...e, item_id: idOf(e) })) }));
+    const other = (o.other_items || o.other_tickets || []).map((x) => ({ ...x, item_id: idOf(x) }));
+    c.pass(`JSON read: ${plural(problems.length, "problem")}, ${plural(other.length, "other item")}`);
+    const listed = [...problems.flatMap((p) => p.item_ids), ...other.map((x) => x.item_id)];
+    const items = itemsFor(listed);
+    const step1Ids = Array.isArray(state.steps[1]) ? state.steps[1].map(idOf) : null;
+    checkCoverage(c, listed, items ? Object.keys(items) : step1Ids, items ? "the feedback file" : "your Step 1 answer");
+    const badCount = problems.filter((p) => Number(p.item_count ?? p.ticket_count) !== p.item_ids.length);
+    if (badCount.length) c.fail("Item counts don't match the listed IDs", badCount.map((p) => `${p.id}: item_count is ${p.item_count ?? p.ticket_count}, but ${p.item_ids.length} IDs are listed`).join("\n"), badCount.map((p) => `${p.id}: item_count is ${p.item_count ?? p.ticket_count}, but ${p.item_ids.length} item IDs are listed. Recount.`).join("\n"));
+    else c.pass("Every item count matches its listed IDs");
+    const small = problems.filter((p) => p.item_ids.length < 2);
+    if (small.length) c.fail("Problems with fewer than 2 items", small.map((p) => p.id).join(", "), `A problem needs at least 2 items. Move the items of ${small.map((p) => p.id).join(", ")} to other_items, or merge them into a matching problem.`);
+    const sumBad = problems.filter((p) => (p.by_source && sum(p.by_source) !== p.item_ids.length) || (p.by_author_type && sum(p.by_author_type) !== p.item_ids.length));
+    if (sumBad.length) c.fail("Source or author breakdowns don't add up", sumBad.map((p) => p.id).join(", "), `In ${sumBad.map((p) => p.id).join(", ")}, by_source and by_author_type must each add up to the number of items.`);
+    else c.pass("Source and author breakdowns add up");
+    if (items) {
+      const count = (ids, key) => { const out = {}; ids.forEach((i) => { const v = items[i]?.[key]; if (v) out[v] = (out[v] || 0) + 1; }); return out; };
+      const same = (a = {}, b = {}) => { const ks = new Set([...Object.keys(a), ...Object.keys(b)]); return [...ks].every((k) => (Number(a[k]) || 0) === (Number(b[k]) || 0)); };
+      const wrong = problems.map((p) => ({ p, src: count(p.item_ids, "source"), au: count(p.item_ids, "author") })).filter(({ p, src, au }) => (p.by_source && !same(p.by_source, src)) || (p.by_author_type && !same(p.by_author_type, au)));
+      if (wrong.length) c.fail("Breakdowns don't match the items' actual sources or authors", wrong.map(({ p, src, au }) => `${p.id} should be ${JSON.stringify(src)} and ${JSON.stringify(au)}`).join("\n"), wrong.map(({ p, src, au }) => `${p.id}: set by_source to ${JSON.stringify(src)} and by_author_type to ${JSON.stringify(au)}, based on the items listed.`).join("\n"));
+      else c.pass("Breakdowns match the items' actual sources and authors");
+    }
+    const noEv = problems.filter((p) => !p.evidence.length);
+    if (noEv.length) c.fail("Problems without evidence quotes", noEv.map((p) => p.id).join(", "), `Add 2–4 exact quotes as evidence for ${noEv.map((p) => p.id).join(", ")}.`);
+    const outside = problems.flatMap((p) => p.evidence.filter((e) => !p.item_ids.includes(e.item_id)).map((e) => `${p.id}: ${e.item_id}`));
+    if (outside.length) c.warn("Evidence quoted from items outside the problem", outside.join("\n"), `Each evidence quote must come from an item in that problem. Fix: ${outside.join("; ")}.`);
+    checkQuotes(c, problems.flatMap((p) => p.evidence.map((e) => ({ item_id: e.item_id, quote: e.quote }))), items, "Evidence quotes");
+    const sorted = problems.every((p, i) => i === 0 || problems[i - 1].item_ids.length >= p.item_ids.length);
+    if (!sorted) c.warn("Problems are not sorted by size", "", "Sort the problems by item_count, highest first, and renumber them P1, P2, …");
+    const s1 = Array.isArray(state.steps[1]) ? Object.fromEntries(state.steps[1].map((r) => [idOf(r), r])) : {};
+    const itemLine = (i) => `<div class="item-row">${idChip(i)}${(s1[i]?.source || items?.[i]?.source) ? srcChip(s1[i]?.source || items[i].source) : "<span></span>"}<span class="snip">${esc(s1[i]?.issue || snippet(items, i) || "")}</span></div>`;
+    const srcs = (p) => p.by_source ? Object.entries(p.by_source).filter(([, n]) => n).map(([k, n]) => srcChip(k, n)).join("") : "";
+    const view = `
+      <div class="card" style="padding:0;overflow:hidden"><div class="tbl-wrap"><table>
+        <thead><tr><th>Problem</th><th class="num">Items</th><th>Sources</th><th>Author types</th></tr></thead>
+        <tbody>${problems.map((p) => `<tr><td style="min-width:240px"><a href="#chk-${esc(p.id)}" style="color:inherit;text-decoration:none"><span class="pid">${esc(p.id)}</span> ${esc(p.title)}</a></td><td class="num"><strong>${p.item_ids.length}</strong></td><td><div class="chips">${srcs(p)}</div></td><td><div class="chips">${Object.entries(p.by_author_type || {}).map(([a, n]) => `<span class="chip">${esc(pretty(a))} · ${n}</span>`).join("")}</div></td></tr>`).join("")}</tbody>
+      </table></div></div>
+      <div class="stack" style="margin-top:14px">${problems.map((p) => `
+        <article class="card pcard" id="chk-${esc(p.id)}">
+          <div class="problem-head"><span class="pid">${esc(p.id)}</span><h3>${esc(p.title)}</h3><span class="count">${plural(p.item_ids.length, "item")}</span></div>
+          <p class="desc">${esc(p.description)}</p>
+          <details class="more" open><summary>Items in this problem: do they all describe the same failure?</summary><div style="margin-top:6px">${p.item_ids.map(itemLine).join("")}</div></details>
+          <details class="more"><summary>Evidence quotes (${p.evidence.length})</summary>${p.evidence.map((e) => quoteBlock(e)).join("")}</details>
+        </article>`).join("")}</div>
+      ${other.length ? `<div class="card" style="margin-top:14px"><p class="card-title">Other items</p><p class="card-sub">Should any of these be part of a problem above?</p>${other.map((x) => `<div class="item-row">${idChip(x.item_id)}<span class="badge">${esc(x.reason || "")}</span><span class="snip">${esc(s1[x.item_id]?.issue || snippet(items, x.item_id))}</span></div>`).join("")}</div>` : ""}`;
+    return { checks: c.list, items, view, review: [
+      "In each problem, <strong>all items describe the same failure</strong> (read the item lines under each problem).",
+      "Titles describe <strong>what goes wrong for customers</strong>, not a cause.",
+      "Nothing in <strong>Other items</strong> clearly belongs to one of the problems.",
+      "No two problems are really the same problem.",
+    ], problems };
+  }
+
+  // ---------- Step 3 ----------
+  function checkStep3(o, problemsCtx) {
+    const c = Checks();
+    if (!Array.isArray(o.root_causes) || !o.root_causes.length) { c.fail("No root causes found", "", 'Return the JSON with a non-empty "root_causes" array, in the format from the prompt.'); return { checks: c.list, items: null, view: "", review: [] }; }
+    const rcs = o.root_causes.map((r) => ({ ...r, five_whys: (r.five_whys || []).map((w) => ({ ...w, evidence: (w.evidence || []).map((e) => ({ ...e, item_id: idOf(e), type: e.type || (e.source === "business_context" ? "business_context" : "quote") })) })) }));
+    c.pass(`JSON read: ${plural(rcs.length, "root cause")}`);
+    const problems = problemsCtx || (Array.isArray(state.steps[2]?.problems) ? state.steps[2].problems : null);
+    if (problems) {
+      const ids = problems.map((p) => p.id), have = rcs.map((r) => r.problem_id);
+      const missing = ids.filter((i) => !have.includes(i)), unknown = have.filter((i) => !ids.includes(i));
+      if (missing.length) c.fail(`No root cause for ${missing.join(", ")}`, "", `Add a root cause analysis for ${missing.join(", ")}.`);
+      else c.pass(`Every problem has a root cause (${ids.length})`);
+      if (unknown.length) c.fail(`Root causes for unknown problems: ${unknown.join(", ")}`, "", `${unknown.join(", ")} are not problems from Step 2. Use the problem IDs from Step 2 only.`);
+    } else c.warn("Not checked against Step 2", "Check your Step 2 answer here first, so the dashboard can confirm every problem has a root cause.");
+    const quotes = rcs.flatMap((r) => r.five_whys.flatMap((w) => w.evidence.filter((e) => e.type !== "business_context").map((e) => ({ item_id: e.item_id, quote: e.quote, pid: r.problem_id }))));
+    const items = itemsFor(quotes.map((q) => q.item_id));
+    const fields = rcs.filter((r) => !r.root_cause || !r.status || !r.confidence || !r.category);
+    if (fields.length) c.fail("Missing required fields", fields.map((r) => r.problem_id).join(", "), `Fill in root_cause, category, status and confidence for ${fields.map((r) => r.problem_id).join(", ")}.`);
+    else c.pass("Every root cause has its required fields");
+    const noWhys = rcs.filter((r) => !r.five_whys.length);
+    if (noWhys.length) c.fail("Root causes without a why-chain", noWhys.map((r) => r.problem_id).join(", "), `Add the 5 Whys chain for ${noWhys.map((r) => r.problem_id).join(", ")}.`);
+    const long = rcs.filter((r) => r.five_whys.length > 5);
+    if (long.length) c.warn("Chains longer than 5 whys", long.map((r) => r.problem_id).join(", "), `Keep each chain to 5 whys or fewer for ${long.map((r) => r.problem_id).join(", ")}.`);
+    const noEv = [], ctxOnly = [];
+    rcs.forEach((r) => r.five_whys.forEach((w, i) => { if (!w.evidence.length) noEv.push(`${r.problem_id} Why ${i + 1}`); else if (w.evidence.every((e) => e.type === "business_context")) ctxOnly.push(`${r.problem_id} Why ${i + 1}`); }));
+    if (noEv.length) c.fail("Links without evidence", noEv.join(", "), `Every link needs at least one exact quote. Add evidence for: ${noEv.join(", ")}, or stop the chain before that link.`);
+    else c.pass("Every link in every chain has evidence");
+    if (ctxOnly.length) c.fail("Links supported only by the business context", ctxOnly.join(", "), `The business context can't prove that something happened. Add a feedback quote for: ${ctxOnly.join(", ")}, or stop the chain before that link.`);
+    checkQuotes(c, quotes, items, "Evidence quotes");
+    if (items) {
+      const invented = [...new Set(quotes.filter((q) => !items[q.item_id]).map((q) => q.item_id))];
+      if (invented.length) c.fail("Quotes cite IDs that don't exist", listFmt(invented), `These IDs don't exist in the feedback file: ${invented.join(", ")}. Correct them.`);
+    }
+    const stoppedConfirmed = rcs.filter((r) => r.status === "confirmed" && r.five_whys.some((w) => /not evidenced/i.test(w.because || "")));
+    if (stoppedConfirmed.length) c.fail("Chains that stop early but are marked confirmed", stoppedConfirmed.map((r) => r.problem_id).join(", "), `${stoppedConfirmed.map((r) => r.problem_id).join(", ")}: the chain says a link is not evidenced, so set status to "needs_investigation" and confidence to "low".`);
+    const inv = rcs.filter((r) => r.status === "needs_investigation");
+    const invNoQ = inv.filter((r) => !(r.open_questions || []).length);
+    if (invNoQ.length) c.fail("Needs-investigation causes without open questions", invNoQ.map((r) => r.problem_id).join(", "), `Add the open questions that would confirm the cause for ${invNoQ.map((r) => r.problem_id).join(", ")}.`);
+    const invConf = inv.filter((r) => r.confidence !== "low");
+    if (invConf.length) c.warn("Needs-investigation causes not marked low confidence", invConf.map((r) => r.problem_id).join(", "), `Set confidence to "low" for ${invConf.map((r) => r.problem_id).join(", ")}, because the chain stopped early.`);
+    if (!stoppedConfirmed.length && !invNoQ.length) c.pass("Status matches each chain (chains that stop early are marked needs investigation)");
+    if (items) {
+      const highNoAgent = rcs.filter((r) => r.confidence === "high" && !quotes.some((q) => q.pid === r.problem_id && isAgentQuote(items, q.item_id, q.quote)));
+      if (highNoAgent.length) c.warn("High confidence without an agent explanation", highNoAgent.map((r) => r.problem_id).join(", "), `High confidence requires at least one support agent's explanation of the mechanism. Quote one for ${highNoAgent.map((r) => r.problem_id).join(", ")}, or lower the confidence to "medium".`);
+      else c.pass("High-confidence causes include an agent explanation");
+    }
+    const titles = Object.fromEntries((problems || []).map((p) => [p.id, p.title]));
+    const view = `
+      <div class="card" style="padding:0;overflow:hidden"><div class="tbl-wrap"><table>
+        <thead><tr><th>Problem</th><th>Root cause</th><th>Type</th><th>Status</th><th>Confidence</th><th class="num">Whys</th></tr></thead>
+        <tbody>${rcs.map((r) => `<tr><td style="min-width:160px"><a href="#chk-${esc(r.problem_id)}" style="color:inherit;text-decoration:none"><span class="pid">${esc(r.problem_id)}</span> ${esc(titles[r.problem_id] || "")}</a></td><td style="min-width:260px">${esc(r.root_cause)}</td><td><div class="chips">${typeBadges(r.category)}</div></td><td>${statusBadge(r)}</td><td style="white-space:nowrap">${confMeter(r.confidence)}</td><td class="num">${r.five_whys.length}</td></tr>`).join("")}</tbody>
+      </table></div></div>
+      <div class="stack" style="margin-top:14px">${rcs.map((r) => `
+        <article class="card rcard" id="chk-${esc(r.problem_id)}">
+          <div class="problem-head"><span class="pid">${esc(r.problem_id)}</span><h3>${esc(titles[r.problem_id] || "")}</h3><div class="chips">${typeBadges(r.category)}${statusBadge(r)}</div></div>
+          <ol class="whys">${r.five_whys.map((w, i) => { const q = w.evidence.filter((e) => e.type !== "business_context"), ctx = w.evidence.filter((e) => e.type === "business_context");
+            return `<li data-n="${i + 1}"><div class="why">${esc(w.why)}</div><p class="because ${/not evidenced/i.test(w.because || "") ? "stop" : ""}">${esc(w.because)}</p>${q.length || ctx.length ? `<details><summary>Evidence (${q.length}${ctx.length ? " + context" : ""})</summary>${q.map((e) => quoteBlock(e, false)).join("")}${ctx.map((e) => `<div class="ctx">Business context: ${esc(e.note)}</div>`).join("")}</details>` : ""}</li>`; }).join("")}</ol>
+          <div class="rc-box ${r.status !== "confirmed" ? "inv" : ""}"><div class="label">${r.status !== "confirmed" ? "⚠ Deepest supported cause" : "Root cause"}</div><p>${esc(r.root_cause)}</p>
+            <p class="reason">${confMeter(r.confidence)}${r.confidence_reason ? ` · ${esc(r.confidence_reason)}` : ""}</p>
+            ${(r.open_questions || []).length ? `<ul class="oq">${r.open_questions.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}</div>
+        </article>`).join("")}</div>`;
+    return { checks: c.list, items, view, review: [
+      "Each root cause is a <strong>cause</strong>, not a restatement of the problem.",
+      "Each root cause is something the <strong>company controls</strong>: a product behavior, policy, process or communication gap, not just customer behavior.",
+      "Each root cause points to a <strong>specific change</strong> you could make.",
+      "Each “because” is really supported by its evidence quotes (open a few).",
+    ] };
+  }
+
+  // ---------- Step 4 ----------
+  function checkStep4(o) {
+    const c = Checks();
+    const missingSecs = ["meta", "summary", "problems", "root_causes", "solutions"].filter((k) => !(k in o));
+    if (missingSecs.length) c.fail(`Missing sections: ${missingSecs.join(", ")}`, "", `The report is missing these sections: ${missingSecs.join(", ")}. Return the complete report in the format from the prompt.`);
+    else c.pass("All report sections are present");
+    const r = normalize(o), m = r.meta;
+    const n = Number(m.items_analyzed) || 0;
+    const allIds = [...r.problems.flatMap((p) => p.item_ids), ...r.other_items.map((x) => x.item_id)];
+    const items = itemsFor(allIds);
+    if (items && n !== Object.keys(items).length) c.fail(`items_analyzed is ${n}, but the feedback file has ${Object.keys(items).length} items`, "", `Set meta.items_analyzed to ${Object.keys(items).length}.`);
+    const msum = [["by_source", sum(m.by_source)], ["by_author_type", sum(m.by_author_type)]].filter(([, s]) => s !== n);
+    if (msum.length) c.fail("Report totals don't add up", msum.map(([k, s]) => `meta.${k} adds up to ${s}, not ${n}`).join("\n"), msum.map(([k, s]) => `meta.${k} adds up to ${s}, but items_analyzed is ${n}. Recount.`).join("\n"));
+    else c.pass(`Report totals add up (${n} items)`);
+    if (allIds.length !== n) c.fail(`Problems + other items = ${allIds.length}, not ${n}`, "", `The items in problems plus other_items add up to ${allIds.length}, but items_analyzed is ${n}. Every item must appear exactly once.`);
+    // Summary numbers must match the problems.
+    const counts = Object.fromEntries(r.problems.map((p) => [p.id, p.item_ids.length]));
+    const inProblems = r.problems.reduce((a, p) => a + p.item_ids.length, 0);
+    const bad = [];
+    (r.summary?.key_findings || []).forEach((f) => { const mm = String(f).match(/^((?:P\d+)(?:\s*\+\s*P\d+)*)\s*·\s*(\d+)\s+(?:items?|tickets?)/i); if (mm) { const want = mm[1].split(/\s*\+\s*/).reduce((a, id) => a + (counts[id] || 0), 0); if (want !== Number(mm[2])) bad.push(`“${mm[1]} · ${mm[2]} items” should be ${want}`); } });
+    const hm = String(r.summary?.headline || "").match(/(\d+)\s+of\s+(\d+)/);
+    if (hm && (Number(hm[1]) !== inProblems || Number(hm[2]) !== n)) bad.push(`headline says “${hm[0]}”, but it should be “${inProblems} of ${n}”`);
+    if (bad.length) c.fail("Summary numbers don't match the problems", bad.join("\n"), `Fix these numbers in the summary: ${bad.join("; ")}.`);
+    else c.pass("Summary numbers match the problems");
+    const solIds = new Set(r.solutions.filter((s) => [...(s.product || []), ...(s.operations || [])].length).map((s) => s.problem_id));
+    const noSol = r.problems.filter((p) => !solIds.has(p.id)).map((p) => p.id);
+    if (noSol.length) c.fail(`No solutions for ${noSol.join(", ")}`, "", `Add product and/or operations solutions for ${noSol.join(", ")}.`);
+    else c.pass("Every problem has at least one solution");
+    if (items) {
+      const req = [...new Set(r.solutions.flatMap((s) => [...(s.product || []), ...(s.operations || [])].flatMap((x) => x.requested_in || [])).filter((i) => !items[i]))];
+      if (req.length) c.fail("requested_in cites IDs that don't exist", listFmt(req), `These requested_in IDs don't exist in the feedback file: ${req.join(", ")}. Correct or remove them.`);
+    }
+    if (state.steps[2] && JSON.stringify(state.steps[2].problems) !== JSON.stringify(o.problems)) c.warn("Problems differ from the Step 2 answer you checked", "The prompt asks the AI to copy them unchanged. Compare them if this wasn't intended.", "Copy problems and other_items from your Step 2 answer unchanged.");
+    if (state.steps[3] && JSON.stringify(state.steps[3].root_causes) !== JSON.stringify(o.root_causes)) c.warn("Root causes differ from the Step 3 answer you checked", "The prompt asks the AI to copy them unchanged. Compare them if this wasn't intended.", "Copy root_causes from your Step 3 answer unchanged.");
+    const prefix = (res, p) => res.checks.filter((x) => !/^JSON read/.test(x.label)).map((x) => ({ ...x, label: `${p} · ${x.label}` }));
+    const s2 = checkStep2(o), s3 = checkStep3(o, r.problems);
+    return { checks: [...c.list, ...prefix(s2, "Problems"), ...prefix(s3, "Root causes")], items: items || s2.items || s3.items, report: o,
+      view: `<div class="card"><p class="card-title">Next: view the finished report</p><p class="card-sub">Fix any ✗ first. Then open the report to review the solutions and summary.</p><button class="primary" data-open-report>View the report →</button></div>`,
+      review: [
+        "Each solution fixes the <strong>root cause</strong>, not just the symptom.",
+        "Problems marked <strong>needs investigation</strong> get investigation steps, not a full fix.",
+        "The summary says only what the report shows, with no new claims.",
+      ] };
+  }
+
+  // ---------- Run & render ----------
+  function runCheck(text) {
+    let obj;
+    try { obj = extractJSON(text); }
+    catch (e) { banner("err", "<strong>Couldn't read the answer.</strong> " + esc(e.message)); return false; }
+    const step = detectStep(obj);
+    if (!step) { banner("err", "<strong>Couldn't tell which step this is.</strong> Paste the AI's whole answer for Step 1, 2, 3 or 4, including its JSON code block."); return false; }
+    state.lastCheckText = text;
+    state.steps[step] = obj; saveSteps();
+    const res = step === 1 ? checkStep1(obj) : step === 2 ? checkStep2(obj) : step === 3 ? checkStep3(obj) : checkStep4(obj);
+    renderCheck(step, res);
+    return true;
+  }
+  function renderCheck(step, res) {
+    state.view = "check"; state.lastCheckResult = res;
+    $("#banner").className = "banner";
+    const fails = res.checks.filter((x) => x.status === "fail"), warns = res.checks.filter((x) => x.status === "warn"), passes = res.checks.filter((x) => x.status === "pass");
+    const fixes = res.checks.filter((x) => (x.status === "fail" || x.status === "warn") && x.fix).map((x) => x.fix);
+    const fixMsg = fixes.length ? `Please fix these issues in your Step ${step} answer:\n\n${fixes.map((f) => "• " + f.replace(/\n/g, "\n  ")).join("\n")}\n\nThen resend the complete corrected answer${step < 4 ? ` (the review ${step === 1 ? "summary" : "table"} first, then the full JSON in one code block)` : " as one JSON code block"}. Don't change anything else.` : "";
+    const next = step < 4 ? `send the Step ${step + 1} prompt in the same chat` : "open the finished report";
+    const needCsv = !res.items;
+    const icon = { pass: "✓", fail: "✗", warn: "!", info: "i" }, tag = { pass: "Pass", fail: "Fix", warn: "Check", info: "Note" };
+    $("#app").innerHTML = `
+      <section id="check">
+        <div class="sec-head"><div class="sec-num">✓</div><h2>Step ${step} check · ${esc(STEP_NAMES[step])}</h2></div>
+        <p class="sec-sub">Automatic checks first, then the things that need your judgment. Fix problems here before moving on.</p>
+        <div class="card verdict ${fails.length ? "bad" : ""}">
+          <div class="big">${fails.length ? `✗ ${plural(fails.length, "issue")} to fix before you ${next}` : warns.length ? `✓ No errors. Look at ${plural(warns.length, "warning")}, then ${next}.` : `✓ All automatic checks passed. Review below, then ${next}.`}
+            <small>${passes.length} passed · ${fails.length} to fix · ${warns.length} to check${needCsv ? " · some checks need your feedback CSV" : ""}</small></div>
+          <div class="actions">${needCsv ? `<button data-load-csv>Load feedback CSV…</button>` : ""}${fixMsg ? `<button class="primary" data-copy-fix>Copy fix message</button>` : ""}${state.report ? `<button data-back>Back to report</button>` : ""}</div>
+        </div>
+        <div class="grid-2" style="margin-top:14px;align-items:start">
+          <div class="card"><p class="card-title">Automatic checks</p><p class="card-sub">Counts, IDs and quotes, checked by the dashboard, not by the AI.</p>
+            <ul class="checks">${[...fails, ...warns, ...passes, ...res.checks.filter((x) => x.status === "info")].map((x) => `<li class="${x.status}"><span class="ic">${icon[x.status]}</span><div><div class="lbl"><span class="tag">${tag[x.status]}</span>${esc(x.label)}</div>${x.detail ? `<div class="det">${esc(x.detail)}</div>` : ""}</div></li>`).join("")}</ul></div>
+          <div class="stack">
+            ${fixMsg ? `<div class="card fix-box"><p class="card-title">Fix message</p><p class="card-sub">Send this to the AI in the same chat, then check its corrected answer here again.</p><textarea id="fix-text" readonly>${esc(fixMsg)}</textarea><div style="margin-top:8px"><button class="primary" data-copy-fix>Copy fix message</button></div></div>` : ""}
+            <div class="card"><p class="card-title">Your review</p><p class="card-sub">The dashboard can't judge meaning. Tick each one after you've looked, or tell the AI what to change.</p>
+              <ul class="review">${res.review.map((x) => `<li><label><input type="checkbox"><span>${x}</span></label></li>`).join("")}</ul></div>
+          </div>
+        </div>
+        ${res.view ? `<div style="margin-top:14px">${res.view}</div>` : ""}
+      </section>`;
+    window.scrollTo(0, 0);
+  }
+  async function copyFix(btn) {
+    const ta = $("#fix-text"); if (!ta) return;
+    try { await navigator.clipboard.writeText(ta.value); } catch (e) { ta.select(); document.execCommand("copy"); }
+    const old = btn.textContent; btn.textContent = "Copied ✓"; setTimeout(() => (btn.textContent = old), 1500);
+  }
+  function openCheckDialog() { refreshCsvNote(); $("#dlg-check").showModal(); }
+  function refreshCsvNote() {
+    $("#check-csv-note").innerHTML = state.items && !state.sampleItems
+      ? `<span class="badge good">✓ Feedback CSV loaded (${Object.keys(state.items).length} items)</span>`
+      : state.sampleItems ? `<span class="badge">Using the sample feedback file.</span> Testing with your own data? Load your feedback CSV so quotes and IDs can be checked.`
+      : `<span class="badge warn">⚠ No feedback CSV loaded</span> Load it so quotes and IDs can be checked.`;
+  }
+  $("#btn-check").onclick = openCheckDialog;
+  $("#btn-check-csv").onclick = () => $("#file-items").click();
+  $("#btn-run-check").onclick = () => {
+    $("#check-error").className = "banner";
+    if (runCheck($("#paste-check").value)) { $("#dlg-check").close(); $("#paste-check").value = ""; }
+    else { $("#check-error").innerHTML = $("#banner").innerHTML; $("#check-error").className = "banner show err"; $("#banner").className = "banner"; }
+  };
+  document.addEventListener("click", (e) => {
+    const b = e.target.closest("[data-copy-fix]"); if (b) copyFix(b);
+    if (e.target.closest("[data-back]")) { render(); window.scrollTo(0, 0); }
+    if (e.target.closest("[data-load-csv]")) $("#file-items").click();
+    if (e.target.closest("[data-open-report]") && state.lastCheckResult?.report) { loadReport(state.lastCheckResult.report); window.scrollTo(0, 0); }
+  });
+
+  // ---------- Item viewer ----------
+  function showItem(id, quote) {
+    const it = state.items?.[id]; if (!it) return;
+    $("#item-title").textContent = `${id}${it.title ? " · " + it.title : ""}`;
+    $("#item-meta").innerHTML = (it.source ? srcChip(it.source) : "") + (it.author ? `<span class="chip">${esc(pretty(it.author))}</span>` : "");
+    const nq = quote ? norm(quote) : "";
+    const hl = (text) => {
+      if (!nq || !norm(text).includes(nq)) return esc(text);
+      const idx = text.indexOf(quote);
+      return idx >= 0 ? esc(text.slice(0, idx)) + "<mark>" + esc(quote) + "</mark>" + esc(text.slice(idx + quote.length)) : "<mark>" + esc(text) + "</mark>";
+    };
+    $("#item-body").innerHTML = it.text.split(/\n/).filter(Boolean).map((line) => {
+      const mm = line.match(/^\[([^\]]+)\]\s*(.*)$/);
+      return `<div class="msg">${mm ? `<b>${esc(mm[1])}</b>` : ""}${hl(mm ? mm[2] : line)}</div>`;
+    }).join("");
+    $("#dlg-item").showModal();
+  }
+
+  // ---------- Tooltip ----------
+  const tip = $("#tip");
+  document.addEventListener("mouseover", (e) => { const t = e.target.closest("[data-tip]"); if (!t) return; tip.textContent = t.dataset.tip; tip.classList.add("show"); });
+  document.addEventListener("mousemove", (e) => {
+    if (!tip.classList.contains("show")) return;
+    const x = Math.min(e.clientX + 14, window.innerWidth - tip.offsetWidth - 8), y = e.clientY + 16 + tip.offsetHeight > window.innerHeight ? e.clientY - tip.offsetHeight - 10 : e.clientY + 16;
+    tip.style.left = x + "px"; tip.style.top = y + "px";
+  });
+  document.addEventListener("mouseout", (e) => { if (e.target.closest("[data-tip]") && !e.relatedTarget?.closest?.("[data-tip]")) tip.classList.remove("show"); });
+
+  // ---------- Events ----------
+  const readFile = (file) => new Promise((res, rej) => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.onerror = rej; fr.readAsText(file); });
+  async function handleFile(file) {
+    const text = await readFile(file);
+    if (/\.csv$/i.test(file.name) || file.type === "text/csv") return loadItems(text);
+    try { if (loadReport(parseJSONText(text))) $("#dlg-load").close(); }
+    catch (e) { banner("err", "<strong>Couldn't parse JSON.</strong> " + esc(e.message)); }
+  }
+  $("#btn-load").onclick = () => $("#dlg-load").showModal();
+  $("#btn-choose").onclick = () => $("#file-report").click();
+  $("#btn-verify").onclick = () => $("#file-items").click();
+  $("#btn-print").onclick = () => {
+    const prev = root.dataset.theme; root.dataset.theme = "light";
+    document.querySelectorAll("#app details").forEach((d) => (d.open = true));
+    window.print();
+    if (prev) root.dataset.theme = prev; else delete root.dataset.theme;
+  };
+  $("#btn-sample").onclick = () => { loadReport(JSON.parse($("#sample-report").textContent), { sample: true }); $("#dlg-load").close(); };
+  $("#btn-paste").onclick = () => {
+    try { if (loadReport(parseJSONText($("#paste").value))) $("#dlg-load").close(); }
+    catch (e) { banner("err", "<strong>Couldn't parse JSON.</strong> " + esc(e.message)); $("#dlg-load").close(); }
+  };
+  $("#file-report").onchange = (e) => e.target.files[0] && handleFile(e.target.files[0]).finally(() => (e.target.value = ""));
+  $("#file-items").onchange = (e) => e.target.files[0] && handleFile(e.target.files[0]).finally(() => (e.target.value = ""));
+  document.addEventListener("click", (e) => {
+    const close = e.target.closest("[data-close]"); if (close) close.closest("dialog").close();
+    const it = e.target.closest("[data-item]"); if (it) showItem(it.dataset.item, it.dataset.quote);
+    const j = e.target.closest("[data-jump]"); if (j) document.getElementById(j.dataset.jump)?.scrollIntoView();
+  });
+  let dragDepth = 0;
+  window.addEventListener("dragenter", (e) => { e.preventDefault(); dragDepth++; $("#dropzone").classList.add("show"); });
+  window.addEventListener("dragleave", () => { if (--dragDepth <= 0) { dragDepth = 0; $("#dropzone").classList.remove("show"); } });
+  window.addEventListener("dragover", (e) => e.preventDefault());
+  window.addEventListener("drop", (e) => { e.preventDefault(); dragDepth = 0; $("#dropzone").classList.remove("show"); [...(e.dataTransfer?.files || [])].forEach(handleFile); });
+
+  loadReport(JSON.parse($("#sample-report").textContent), { sample: true });
+  // Content renders after load, so honor deep links like #rc-P1 ourselves.
+  if (location.hash) { const t = document.getElementById(decodeURIComponent(location.hash.slice(1))); if (t) { t.querySelector("details")?.setAttribute("open", ""); t.scrollIntoView(); } }
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,121 @@
+item_id,source,created_at,author_type,title,text
+T-1001,support_ticket,2026-08-03,courier,Waited 35 minutes at restaurant,"[Courier] I got to Golden Wok at 6:05 for order #A-88213. They told me the food wouldn't be ready until 6:40. I waited the whole time. Is there any compensation for that?
+[Agent] Thanks for waiting and for letting us know. I can see you arrived at 6:04 and picked up at 6:39. I've added a $4.00 wait time adjustment to your account.
+[Courier] Thanks. This keeps happening at this store though, it's the third time this week.
+[Agent] I understand. I've flagged the store for review."
+T-1002,support_ticket,2026-08-03,merchant,Couriers showing up way too early,"[Merchant] Hi, we're a catering kitchen. Your couriers are arriving 30-40 minutes before our orders are ready and standing around in our kitchen. Some of them cancel and then we have to wait for a new courier.
+[Agent] Sorry about that. Looking at your account, your prep time is set to the default of 10 minutes, so couriers are dispatched to arrive about 10 minutes after the order is placed.
+[Merchant] 10 minutes? Our catering trays take at least 45. Nobody mentioned a prep time setting when we set up the account.
+[Agent] You can change it in the Merchant Dashboard under Store Settings > Prep Time. I've updated it to 45 minutes for you now.
+[Merchant] Ok thanks. Can it be different per order? Our small orders are faster.
+[Agent] The dashboard setting is one value per store. Per-order times can be sent through the API using the ready_at field if your integration supports it."
+T-1003,support_ticket,2026-08-04,courier,Order reassigned after long wait,"[Courier] I waited 25 minutes at Bella Pasta and then I had to unassign myself because I couldn't wait any longer. I got nothing for the 25 minutes.
+[Agent] I'm sorry about that. Because you unassigned yourself before pickup, the trip isn't eligible for pay, but I've added a one-time $3.00 wait credit as a courtesy.
+[Courier] The store said the food wasn't even started when I got there."
+T-1004,support_ticket,2026-08-05,merchant,How do we tell you when food is ready?,"[Merchant] Is there a way to tell your system when an order is actually ready? Drivers keep coming too early. We use the TillStack POS integration.
+[Agent] Your store can send a ready time with each order through the API's ready_at field. Integrations that don't send ready_at use your store's default prep time.
+[Merchant] I checked with TillStack and they said their integration doesn't send that field. So we're stuck with the default?
+[Agent] For now, yes. I'd recommend adjusting your default prep time to match your typical order. Yours is currently 10 minutes.
+[Merchant] Our typical order is 25 minutes. I'll change it but big orders will still be off."
+T-1005,support_ticket,2026-08-05,consumer,Food arrived cold and late,"[Consumer] My order from Golden Wok was supposed to arrive at 6:30 and came at 7:05. The driver said they'd been waiting at the restaurant for half an hour. Food was lukewarm.
+[Agent] I'm sorry about the delay. I can see the courier waited at the store for 35 minutes before pickup. I've issued a $5 credit to your account."
+T-1006,support_ticket,2026-08-06,courier,Restaurant tells me to wait outside,"[Courier] Every time I get sent to Spice Route, the order isn't ready and staff tell me to wait outside. App says pickup at 7:15, food comes out at 7:40. Why does the app send me so early?
+[Agent] The pickup time is based on the prep time the store has set. I'll pass this feedback on.
+[Courier] Can you at least pay for waiting?
+[Agent] Wait pay starts after 10 minutes at the store. I've confirmed you received $3.50 wait pay for this trip."
+T-1007,support_ticket,2026-08-07,merchant,Drivers crowding our counter,"[Merchant] We had 6 drivers standing at our counter at lunch today, all waiting for orders that weren't ready. It's blocking our walk-in customers.
+[Agent] I'm sorry. Your prep time is currently set to 12 minutes. Is that accurate for your lunch orders?
+[Merchant] At lunch it's more like 30. During the afternoon it's 12. Is there a setting for peak hours?
+[Agent] Not at the moment. Prep time is a single value for the store. I've noted your feedback."
+T-1008,support_ticket,2026-08-09,courier,Long waits at Bella Pasta again,"[Courier] Third long wait at Bella Pasta this week. 20+ minutes each time. Staff said they only start cooking when the driver gets assigned.
+[Agent] Thank you for reporting. I've added this to the store's report and applied wait pay for the trip."
+T-1009,support_ticket,2026-08-03,consumer,Driver didn't follow my instructions,"[Consumer] I put the gate code and ""leave with concierge"" in my instructions when ordering from Greenleaf Market's website. The driver left the bag outside the gate on the sidewalk.
+[Agent] I'm sorry. I checked the delivery and the courier did not see any drop-off instructions on their side. It looks like Greenleaf sent your note in the order notes field, which isn't shown to couriers. Only the drop-off instructions field is shown.
+[Consumer] So it's the store's fault? I typed it in the right box.
+[Agent] I've issued a refund of $12 for the inconvenience and I'll let the store know."
+T-1010,support_ticket,2026-08-04,courier,No instructions for apartment building,"[Courier] Delivered to a big apartment complex with no buzzer number and no instructions. Customer called me angry saying they left instructions. I didn't see any in the app.
+[Agent] Thanks. I checked the order and the drop-off instructions field was empty. The customer's notes were sent by the merchant in a different field that isn't displayed in the courier app.
+[Courier] Then how am I supposed to know? Can you make the app show it?
+[Agent] I'll pass that to our product team."
+T-1011,support_ticket,2026-08-05,merchant,Customer notes not reaching drivers,"[Merchant] Hi, I'm the developer for Greenleaf Market's ordering site. We're getting complaints that drivers ignore delivery notes. We pass the customer's notes in order_notes on the create delivery call. Is that wrong?
+[Agent] Couriers only see the dropoff_instructions field. order_notes is visible to your store staff and our support team but not in the courier app.
+[Merchant] The API docs describe order_notes as ""notes about the order"". It doesn't say couriers won't see it. We'll switch, but you should make this clearer, and the API didn't give any warning.
+[Agent] Understood, I'll share this with our developer documentation team."
+T-1012,support_ticket,2026-08-06,consumer,Left at the wrong door,"[Consumer] I wrote ""back door, front door is locked, dog in yard"" and the driver went to the front and left it at the locked door. Package got rained on.
+[Agent] I'm sorry. The courier's app didn't show any drop-off instructions for this delivery. The note was received in the order notes from the store, not the drop-off instructions.
+[Consumer] I don't care which field. Please fix this.
+[Agent] I've refunded the order."
+T-1013,support_ticket,2026-08-08,consumer,Instructions ignored again,"[Consumer] Second time this month. I gave the concierge instructions and they weren't followed. Ordered from Pharmly Pharmacy.
+[Agent] I see the instructions came through as order notes, which couriers don't see. I've refunded the delivery fee."
+T-1014,support_ticket,2026-08-10,courier,Customer says I ignored their note,"[Courier] I got a low rating because the customer said I ignored their note about leaving it with the neighbour. There was no note on my screen. Can the rating be removed?
+[Agent] I confirmed there were no drop-off instructions on this delivery in the courier app. I've removed the rating."
+T-1015,support_ticket,2026-08-11,consumer,Buzzer code not used,"[Consumer] Driver called me 4 times to ask for the buzzer code even though I put it in the instructions on Urban Bakes' website.
+[Agent] Sorry for the hassle. The code was in the order notes the store sent, which couriers can't see. I'll reach out to Urban Bakes about sending it as drop-off instructions."
+T-1016,support_ticket,2026-08-04,merchant,What is this Adjustment charge?,"[Merchant] Our weekly invoice has 4 lines that just say ""Adjustment"" for $8.50 each. What are these?
+[Agent] Those are return fees. When a courier can't complete a delivery and returns the items to your store, a return fee is charged.
+[Merchant] Where is that explained? The invoice just says Adjustment and doesn't say which orders.
+[Agent] The invoice uses the ""Adjustment"" label for all fee types. I can send you the order IDs."
+T-1017,support_ticket,2026-08-05,merchant,Unknown charges,"[Merchant] I've been charged $25.50 extra this week with no explanation. I looked through the help center and found nothing about these charges.
+[Agent] These are 3 return fees of $8.50 for deliveries that were returned to your store. I'm sorry that it wasn't clear.
+[Merchant] Why would I pay when the customer wasn't home? That's not my fault.
+[Agent] I understand the frustration. The return fee covers the courier's trip back to your store. As a one-time courtesy I've waived these."
+T-1018,support_ticket,2026-08-06,merchant,Dispute invoice INV-30422,"[Merchant] I want to dispute the Adjustments on invoice INV-30422. Nobody told us about these.
+[Agent] These relate to two returned deliveries. I've attached the order IDs. The return fee is listed in the merchant terms.
+[Merchant] We've been using you for 8 months and this is the first time anyone mentioned it."
+T-1019,support_ticket,2026-08-08,merchant,Invoice line items,"[Merchant] Can you add which order each Adjustment line is for? Our accounting team has to email support every week to reconcile.
+[Agent] Currently the invoice doesn't include order-level detail for adjustments. You can request a breakdown from support, which I've done for this week."
+T-1020,support_ticket,2026-08-10,merchant,Charged for a return,"[Merchant] A courier brought back an order today because the customer didn't answer. Now there's an Adjustment for $8.50. Is that what this is?
+[Agent] Yes, that's the return fee.
+[Merchant] Ok. It would help if the invoice just said that."
+T-1021,support_ticket,2026-08-12,merchant,Billing question for July,"[Merchant] Our finance team flagged unexplained ""Adjustment"" charges totaling $59.50 for July. Please explain.
+[Agent] These are 7 return fees at $8.50 each. I've emailed a list of the related orders."
+T-1022,support_ticket,2026-08-04,courier,Not paid for returning order,"[Courier] Customer didn't answer so I drove the order back to the store, 15 minutes. My trip receipt shows only the original pay. I didn't get paid for the return.
+[Agent] Return pay is added as a separate adjustment within 72 hours. It doesn't appear on the trip receipt.
+[Courier] There's nothing in the app that says that. I thought I was just not getting paid."
+T-1023,support_ticket,2026-08-06,courier,Return trip pay missing,"[Courier] Had to return 2 orders yesterday. Where is my pay for that?
+[Agent] Return pay is processed within 72 hours of the trip. I can see both are scheduled and will appear in your earnings as adjustments.
+[Courier] Why can't the app show it's pending?"
+T-1024,support_ticket,2026-08-07,courier,Do we even get paid for returns?,"[Courier] Honestly asking, do couriers get paid for bringing orders back? I've done several and never saw anything.
+[Agent] Yes, return pay is added later as an adjustment. I checked your account and you received return pay for 4 trips in the last month, listed as ""Adjustment"" in your earnings.
+[Courier] I saw those but had no idea what they were."
+T-1025,support_ticket,2026-08-09,courier,Return trip,"[Courier] I'm refusing to do returns from now on if I don't get paid. Last one I drove 20 minutes back.
+[Agent] I understand. Return pay for that trip will show in your earnings within 72 hours as an adjustment."
+T-1026,support_ticket,2026-08-11,courier,Weekly earnings look wrong,"[Courier] My weekly earnings summary is lower than I calculated. I had a return on Tuesday.
+[Agent] The return pay for Tuesday was added on Thursday as an adjustment, so it falls in next week's summary.
+[Courier] That's confusing. The trip happened this week."
+T-1027,support_ticket,2026-08-05,courier,Map pin wrong,"[Courier] Map pin for 1180 Harbor View Rd took me to a construction site about 400 m from the actual building. Wasted 10 min finding it.
+[Agent] Thanks for reporting. I've escalated the address to our mapping team."
+T-1028,support_ticket,2026-08-07,consumer,Driver went to the wrong building,"[Consumer] My order went to the wrong building. I live in the new Harbor View development. The driver said the map sent them to the other side of the lot.
+[Agent] Sorry about that. I've refunded the delivery fee and reported the location issue."
+T-1029,support_ticket,2026-08-09,courier,Bad location in new subdivision,"[Courier] Addresses in the new Maple Ridge subdivision keep showing in the middle of a field on my map. Happened 3 times this week.
+[Agent] Thanks. I've sent these to our mapping team for review."
+T-1030,support_ticket,2026-08-12,consumer,Late because driver got lost,"[Consumer] Driver couldn't find my house, called me twice. I'm on Maple Ridge Drive, it's a new street.
+[Agent] Apologies. I've added a $5 credit and reported the address."
+T-1031,support_ticket,2026-08-06,consumer,Change tip after delivery,"[Consumer] Can I increase my tip? The driver was great.
+[Agent] Tips are set on the store's checkout page, so we can't change them after delivery. I'll pass along your thanks to the courier."
+T-1032,support_ticket,2026-08-08,courier,App crashed during navigation,"[Courier] The app closed in the middle of a delivery while I was navigating. I reopened it and it was fine.
+[Agent] Thanks for letting us know. If it happens again, please send us your app version."
+T-1033,support_ticket,2026-08-10,merchant,Adding a second store,"[Merchant] We're opening a second location next month. How do we add it?
+[Agent] You can add a store in the Merchant Dashboard under Stores > Add Store. Each store gets its own settings."
+T-1034,support_ticket,2026-08-12,consumer,Great service,"[Consumer] Just wanted to say the delivery today was really fast. Thanks!
+[Agent] Thank you for the kind words! We'll share them with the team."
+S-2001,survey,2026-08-08,merchant,Merchant survey: What's one thing we should improve?,"Drivers show up way before our food is ready, especially at lunch. We set prep time once when we joined and never touched it again."
+S-2002,survey,2026-08-08,merchant,Merchant survey: What's one thing we should improve?,Please make the invoice readable. Half our charges just say Adjustment and our bookkeeper can't match them to orders.
+S-2003,survey,2026-08-09,merchant,Merchant survey: What's one thing we should improve?,The return fee was a surprise. I'd rather know when it happens than find it on the invoice a week later.
+S-2004,survey,2026-08-09,merchant,Merchant survey: What's one thing we should improve?,Our catering orders take 45+ minutes but couriers are sent like it's a coffee order. There should be a way to set prep time per order from the dashboard.
+S-2005,survey,2026-08-10,merchant,Merchant survey: What's one thing we should improve?,Honestly works well for us. Couriers are polite and on time.
+S-2006,survey,2026-08-10,merchant,Merchant survey: What's one thing we should improve?,Your API docs could be clearer about which fields drivers actually see. We learned the hard way.
+S-2101,survey,2026-08-07,courier,Courier pulse survey: Anything making deliveries harder?,"Return trips. I never know if I'm getting paid for them until days later, if at all."
+S-2102,survey,2026-08-07,courier,Courier pulse survey: Anything making deliveries harder?,Waiting at restaurants. Some places I wait 30 min every time because the food isn't started.
+S-2103,survey,2026-08-08,courier,Courier pulse survey: Anything making deliveries harder?,I accept an order and it's 8 bags of groceries or a stack of catering trays. The offer screen should show how big the order is.
+S-2104,survey,2026-08-09,courier,Courier pulse survey: Anything making deliveries harder?,"New neighborhoods are a nightmare, the pin is always off."
+S-2105,survey,2026-08-11,courier,Courier pulse survey: Anything making deliveries harder?,App drains my battery fast.
+S-2201,survey,2026-08-05,consumer,Post-delivery survey: Tell us about your delivery,Left at the front door even though I wrote to use the side entrance.
+S-2202,survey,2026-08-06,consumer,Post-delivery survey: Tell us about your delivery,"Driver couldn't get into my building, I had written the code in the notes."
+S-2203,survey,2026-08-07,consumer,Post-delivery survey: Tell us about your delivery,Food was cold. Courier said they waited at the restaurant a long time.
+S-2204,survey,2026-08-09,consumer,Post-delivery survey: Tell us about your delivery,"Fast and friendly, thanks!"
+S-2205,survey,2026-08-12,consumer,Post-delivery survey: Tell us about your delivery,Driver went to the wrong side of the new complex on Harbor View.
+R-3001,app_review,2026-08-06,courier,Acme Courier App review (2 stars),Returns pay shows up as some random Adjustment days later. Took me weeks to figure out what it was.
+R-3002,app_review,2026-08-08,courier,Acme Courier App review (3 stars),Decent app but you can't see the order size before accepting. Got a 10-tray catering order in a hatchback.
+R-3003,app_review,2026-08-10,courier,Acme Courier App review (2 stars),Too much waiting at restaurants and wait pay barely covers it.
+R-3004,app_review,2026-08-11,courier,Acme Courier App review (3 stars),Wish I could see how many items or bags before I accept. Some orders don't fit on a bike.

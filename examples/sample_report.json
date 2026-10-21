@@ -1,0 +1,495 @@
+{
+  "meta": {
+    "title": "Customer Feedback Root Cause Analysis",
+    "product": "Acme Direct (fictional)",
+    "period": "2026-08-03 to 2026-08-12",
+    "items_analyzed": 54,
+    "by_source": { "support_ticket": 34, "survey": 16, "app_review": 4 },
+    "by_author_type": { "merchant": 17, "consumer": 14, "courier": 23 }
+  },
+  "summary": {
+    "headline": "47 of 54 feedback items, from support tickets, surveys and app reviews, point to 6 recurring problems. The largest, couriers arriving before orders are ready, appears in all three sources and is reported by merchants, couriers and consumers.",
+    "key_findings": [
+      "P1 · 13 items (tickets, surveys, app reviews): couriers wait at stores because dispatch timing uses one static prep time per store, often left at the 10-minute default, with no way to vary it by order or time of day.",
+      "P2 · 10 items (tickets, surveys): consumers' drop-off instructions don't reach couriers because merchants send them in order_notes, a field the courier app does not show, and the API docs don't warn about it.",
+      "P3 + P4 · 15 items: both sides of a returned order are confusing. Merchants can't identify return fees and couriers can't identify return pay, because both appear only as a generic \"Adjustment\".",
+      "P5 · 6 items (tickets, surveys): map locations are wrong in newly built developments. The feedback does not show why, so this needs investigation.",
+      "P6 · 3 items, surveys and app reviews only: couriers can't see order size before accepting. No support ticket mentions this, so ticket analysis alone would miss it.",
+      "7 items were one-off issues or not problems."
+    ]
+  },
+  "problems": [
+    {
+      "id": "P1",
+      "title": "Couriers arrive before orders are ready",
+      "description": "Couriers are sent to stores well before food is ready and wait 20–40 minutes, sometimes unassigning without pay. Merchants report crowded counters and courier cancellations, and consumers receive late, cold food.",
+      "item_ids": ["T-1001", "T-1002", "T-1003", "T-1004", "T-1005", "T-1006", "T-1007", "T-1008", "S-2001", "S-2004", "S-2102", "S-2203", "R-3003"],
+      "item_count": 13,
+      "by_source": { "support_ticket": 8, "survey": 4, "app_review": 1 },
+      "by_author_type": { "merchant": 5, "courier": 6, "consumer": 2 },
+      "evidence": [
+        { "item_id": "T-1002", "source": "support_ticket", "speaker": "merchant", "quote": "Your couriers are arriving 30-40 minutes before our orders are ready and standing around in our kitchen." },
+        { "item_id": "T-1006", "source": "support_ticket", "speaker": "courier", "quote": "App says pickup at 7:15, food comes out at 7:40. Why does the app send me so early?" },
+        { "item_id": "S-2102", "source": "survey", "speaker": "courier", "quote": "Some places I wait 30 min every time because the food isn't started." },
+        { "item_id": "S-2203", "source": "survey", "speaker": "consumer", "quote": "Food was cold. Courier said they waited at the restaurant a long time." }
+      ]
+    },
+    {
+      "id": "P2",
+      "title": "Drop-off instructions don't reach couriers",
+      "description": "Consumers enter gate codes, buzzer numbers and drop-off notes on the merchant's site, but couriers never see them. Orders are left in the wrong place, couriers call repeatedly, and couriers are blamed and rated down for ignoring notes.",
+      "item_ids": ["T-1009", "T-1010", "T-1011", "T-1012", "T-1013", "T-1014", "T-1015", "S-2006", "S-2201", "S-2202"],
+      "item_count": 10,
+      "by_source": { "support_ticket": 7, "survey": 3 },
+      "by_author_type": { "consumer": 6, "courier": 2, "merchant": 2 },
+      "evidence": [
+        { "item_id": "T-1009", "source": "support_ticket", "speaker": "consumer", "quote": "The driver left the bag outside the gate on the sidewalk." },
+        { "item_id": "T-1010", "source": "support_ticket", "speaker": "courier", "quote": "Customer called me angry saying they left instructions. I didn't see any in the app." },
+        { "item_id": "S-2202", "source": "survey", "speaker": "consumer", "quote": "Driver couldn't get into my building, I had written the code in the notes." },
+        { "item_id": "T-1011", "source": "support_ticket", "speaker": "merchant", "quote": "We're getting complaints that drivers ignore delivery notes." }
+      ]
+    },
+    {
+      "id": "P3",
+      "title": "Merchants can't identify \"Adjustment\" charges",
+      "description": "Merchants and their finance teams find unexplained \"Adjustment\" lines on invoices and must contact support to learn what they are and which orders they relate to. Some dispute the charges because they were never told about the fee.",
+      "item_ids": ["T-1016", "T-1017", "T-1018", "T-1019", "T-1020", "T-1021", "S-2002", "S-2003"],
+      "item_count": 8,
+      "by_source": { "support_ticket": 6, "survey": 2 },
+      "by_author_type": { "merchant": 8 },
+      "evidence": [
+        { "item_id": "T-1016", "source": "support_ticket", "speaker": "merchant", "quote": "Our weekly invoice has 4 lines that just say \"Adjustment\" for $8.50 each. What are these?" },
+        { "item_id": "S-2002", "source": "survey", "speaker": "merchant", "quote": "Half our charges just say Adjustment and our bookkeeper can't match them to orders." },
+        { "item_id": "T-1018", "source": "support_ticket", "speaker": "merchant", "quote": "We've been using you for 8 months and this is the first time anyone mentioned it." }
+      ]
+    },
+    {
+      "id": "P4",
+      "title": "Couriers think returns are unpaid",
+      "description": "After driving undeliverable orders back to stores, couriers see no return pay on the trip and believe they were not paid. Some say they will refuse returns, and others find their weekly earnings don't match the trips they did.",
+      "item_ids": ["T-1022", "T-1023", "T-1024", "T-1025", "T-1026", "S-2101", "R-3001"],
+      "item_count": 7,
+      "by_source": { "support_ticket": 5, "survey": 1, "app_review": 1 },
+      "by_author_type": { "courier": 7 },
+      "evidence": [
+        { "item_id": "T-1022", "source": "support_ticket", "speaker": "courier", "quote": "My trip receipt shows only the original pay. I didn't get paid for the return." },
+        { "item_id": "S-2101", "source": "survey", "speaker": "courier", "quote": "I never know if I'm getting paid for them until days later, if at all." },
+        { "item_id": "T-1025", "source": "support_ticket", "speaker": "courier", "quote": "I'm refusing to do returns from now on if I don't get paid." }
+      ]
+    },
+    {
+      "id": "P5",
+      "title": "Wrong map locations in new developments",
+      "description": "Couriers are sent to the wrong spot for addresses in newly built areas, such as a construction site or an empty field. This causes late deliveries and repeated calls to consumers.",
+      "item_ids": ["T-1027", "T-1028", "T-1029", "T-1030", "S-2104", "S-2205"],
+      "item_count": 6,
+      "by_source": { "support_ticket": 4, "survey": 2 },
+      "by_author_type": { "courier": 3, "consumer": 3 },
+      "evidence": [
+        { "item_id": "T-1027", "source": "support_ticket", "speaker": "courier", "quote": "Map pin for 1180 Harbor View Rd took me to a construction site about 400 m from the actual building." },
+        { "item_id": "S-2104", "source": "survey", "speaker": "courier", "quote": "New neighborhoods are a nightmare, the pin is always off." },
+        { "item_id": "T-1030", "source": "support_ticket", "speaker": "consumer", "quote": "Driver couldn't find my house, called me twice. I'm on Maple Ridge Drive, it's a new street." }
+      ]
+    },
+    {
+      "id": "P6",
+      "title": "Couriers can't see order size before accepting",
+      "description": "Couriers accept orders without knowing how large they are, then find large grocery or catering orders that don't fit their car or bike. This appears only in surveys and app reviews, not in support tickets.",
+      "item_ids": ["S-2103", "R-3002", "R-3004"],
+      "item_count": 3,
+      "by_source": { "survey": 1, "app_review": 2 },
+      "by_author_type": { "courier": 3 },
+      "evidence": [
+        { "item_id": "S-2103", "source": "survey", "speaker": "courier", "quote": "The offer screen should show how big the order is." },
+        { "item_id": "R-3002", "source": "app_review", "speaker": "courier", "quote": "Got a 10-tray catering order in a hatchback." },
+        { "item_id": "R-3004", "source": "app_review", "speaker": "courier", "quote": "Some orders don't fit on a bike." }
+      ]
+    }
+  ],
+  "other_items": [
+    { "item_id": "T-1031", "reason": "Single occurrence: consumer wants to change the tip after delivery" },
+    { "item_id": "T-1032", "reason": "Single occurrence: courier app closed once during navigation; resolved on restart" },
+    { "item_id": "T-1033", "reason": "Not a problem: how-to question about adding a store" },
+    { "item_id": "T-1034", "reason": "Not a problem: compliment" },
+    { "item_id": "S-2005", "reason": "Not a problem: positive merchant feedback" },
+    { "item_id": "S-2105", "reason": "Single occurrence: courier app battery drain" },
+    { "item_id": "S-2204", "reason": "Not a problem: compliment" }
+  ],
+  "root_causes": [
+    {
+      "problem_id": "P1",
+      "five_whys": [
+        {
+          "why": "Why do couriers wait a long time at stores?",
+          "because": "They are dispatched to arrive well before the order is ready.",
+          "evidence": [
+            { "type": "quote", "item_id": "T-1001", "quote": "They told me the food wouldn't be ready until 6:40." },
+            { "type": "quote", "item_id": "T-1006", "quote": "App says pickup at 7:15, food comes out at 7:40." }
+          ]
+        },
+        {
+          "why": "Why are couriers dispatched too early?",
+          "because": "Dispatch is timed using the store's prep time setting, and that setting is much shorter than the real prep time at these stores.",
+          "evidence": [
+            { "type": "quote", "item_id": "T-1002", "quote": "your prep time is set to the default of 10 minutes, so couriers are dispatched to arrive about 10 minutes after the order is placed." },
+            { "type": "quote", "item_id": "T-1002", "quote": "Our catering trays take at least 45." },
+            { "type": "quote", "item_id": "T-1004", "quote": "Our typical order is 25 minutes." },
+            { "type": "quote", "item_id": "T-1006", "quote": "The pickup time is based on the prep time the store has set." }
+          ]
+        },
+        {
+          "why": "Why is the prep time setting wrong?",
+          "because": "Merchants are not told about the setting during setup, so it stays at whatever was set at the start. Even when it is set, it is one value per store and cannot reflect order size or peak hours.",
+          "evidence": [
+            { "type": "quote", "item_id": "T-1002", "quote": "Nobody mentioned a prep time setting when we set up the account." },
+            { "type": "quote", "item_id": "S-2001", "quote": "We set prep time once when we joined and never touched it again." },
+            { "type": "quote", "item_id": "T-1002", "quote": "The dashboard setting is one value per store." },
+            { "type": "quote", "item_id": "T-1007", "quote": "At lunch it's more like 30. During the afternoon it's 12. Is there a setting for peak hours?" }
+          ]
+        },
+        {
+          "why": "Why can't merchants send an accurate time per order instead?",
+          "because": "The per-order ready_at field is optional, some POS integrations don't send it, and the dashboard offers no per-order alternative.",
+          "evidence": [
+            { "type": "quote", "item_id": "T-1004", "quote": "Integrations that don't send ready_at use your store's default prep time." },
+            { "type": "quote", "item_id": "T-1004", "quote": "I checked with TillStack and they said their integration doesn't send that field. So we're stuck with the default?" },
+            { "type": "quote", "item_id": "S-2004", "quote": "There should be a way to set prep time per order from the dashboard." },
+            { "type": "business_context", "note": "ready_at is described as an optional API field for the time a specific order will be ready." }
+          ]
+        }
+      ],
+      "root_cause": "Courier dispatch relies on a single, static, store-level prep time. Onboarding does not cover it, so it is rarely updated, and it cannot vary by order or time of day. The only per-order signal (ready_at) is optional, unsupported by some POS integrations, and not available in the dashboard.",
+      "category": "product_and_operations",
+      "status": "confirmed",
+      "confidence": "high",
+      "confidence_reason": "Agents explain the dispatch mechanism in two tickets, and merchants confirm it independently in tickets and the survey.",
+      "open_questions": []
+    },
+    {
+      "problem_id": "P2",
+      "five_whys": [
+        {
+          "why": "Why are consumers' drop-off instructions not followed?",
+          "because": "Couriers do not see the instructions in the courier app.",
+          "evidence": [
+            { "type": "quote", "item_id": "T-1009", "quote": "the courier did not see any drop-off instructions on their side." },
+            { "type": "quote", "item_id": "T-1014", "quote": "I confirmed there were no drop-off instructions on this delivery in the courier app." }
+          ]
+        },
+        {
+          "why": "Why don't couriers see the instructions?",
+          "because": "Merchants send the consumer's instructions in the order_notes field. The courier app only displays dropoff_instructions.",
+          "evidence": [
+            { "type": "quote", "item_id": "T-1011", "quote": "Couriers only see the dropoff_instructions field. order_notes is visible to your store staff and our support team but not in the courier app." },
+            { "type": "quote", "item_id": "T-1012", "quote": "The note was received in the order notes from the store, not the drop-off instructions." },
+            { "type": "quote", "item_id": "T-1015", "quote": "The code was in the order notes the store sent, which couriers can't see." }
+          ]
+        },
+        {
+          "why": "Why do merchant integrations put instructions in order_notes?",
+          "because": "The API documentation does not say order_notes is hidden from couriers, and the API gives no warning when it is used this way.",
+          "evidence": [
+            { "type": "quote", "item_id": "T-1011", "quote": "The API docs describe order_notes as \"notes about the order\". It doesn't say couriers won't see it." },
+            { "type": "quote", "item_id": "T-1011", "quote": "We'll switch, but you should make this clearer, and the API didn't give any warning." },
+            { "type": "quote", "item_id": "S-2006", "quote": "Your API docs could be clearer about which fields drivers actually see." }
+          ]
+        }
+      ],
+      "root_cause": "The Delivery API offers two similar free-text fields, but the courier app shows only one. Neither the docs nor the API warn about this, so integrations send consumer instructions to a field couriers never see.",
+      "category": "product_and_operations",
+      "status": "confirmed",
+      "confidence": "high",
+      "confidence_reason": "Agents explain the field behavior in four tickets, and two merchants independently point to the API docs.",
+      "open_questions": []
+    },
+    {
+      "problem_id": "P3",
+      "five_whys": [
+        {
+          "why": "Why do merchants contact support about invoice charges?",
+          "because": "They cannot tell from the invoice what certain charges are.",
+          "evidence": [
+            { "type": "quote", "item_id": "T-1021", "quote": "Our finance team flagged unexplained \"Adjustment\" charges totaling $59.50 for July." },
+            { "type": "quote", "item_id": "T-1017", "quote": "I've been charged $25.50 extra this week with no explanation." }
+          ]
+        },
+        {
+          "why": "Why can't merchants tell what the charges are?",
+          "because": "The invoice labels every fee type as \"Adjustment\" and does not show the related order.",
+          "evidence": [
+            { "type": "quote", "item_id": "T-1016", "quote": "The invoice uses the \"Adjustment\" label for all fee types." },
+            { "type": "quote", "item_id": "T-1019", "quote": "Currently the invoice doesn't include order-level detail for adjustments." },
+            { "type": "quote", "item_id": "S-2002", "quote": "Half our charges just say Adjustment and our bookkeeper can't match them to orders." }
+          ]
+        },
+        {
+          "why": "Why don't merchants already know about return fees?",
+          "because": "The return fee is documented only in the merchant terms. Merchants say they can't find it in the help center, were never told about it, and only discover it on the invoice.",
+          "evidence": [
+            { "type": "quote", "item_id": "T-1018", "quote": "The return fee is listed in the merchant terms." },
+            { "type": "quote", "item_id": "T-1017", "quote": "I looked through the help center and found nothing about these charges." },
+            { "type": "quote", "item_id": "S-2003", "quote": "The return fee was a surprise. I'd rather know when it happens than find it on the invoice a week later." }
+          ]
+        }
+      ],
+      "root_cause": "Invoices show return fees under a generic \"Adjustment\" label with no reason or order ID. The fee itself is documented only in the merchant terms, and merchants are not notified when a return happens.",
+      "category": "product_and_operations",
+      "status": "confirmed",
+      "confidence": "high",
+      "confidence_reason": "Agents confirm the invoice labeling and where the fee is documented, and merchants describe the same gap in tickets and the survey.",
+      "open_questions": []
+    },
+    {
+      "problem_id": "P4",
+      "five_whys": [
+        {
+          "why": "Why do couriers believe returns are unpaid?",
+          "because": "Return pay does not appear on the trip receipt.",
+          "evidence": [
+            { "type": "quote", "item_id": "T-1022", "quote": "Return pay is added as a separate adjustment within 72 hours. It doesn't appear on the trip receipt." }
+          ]
+        },
+        {
+          "why": "Why don't couriers recognize the return pay when it arrives?",
+          "because": "It is paid up to 72 hours later as a generic \"Adjustment\", sometimes in a different weekly summary, and the app shows nothing in the meantime.",
+          "evidence": [
+            { "type": "quote", "item_id": "T-1024", "quote": "I checked your account and you received return pay for 4 trips in the last month, listed as \"Adjustment\" in your earnings." },
+            { "type": "quote", "item_id": "T-1026", "quote": "The return pay for Tuesday was added on Thursday as an adjustment, so it falls in next week's summary." },
+            { "type": "quote", "item_id": "R-3001", "quote": "Returns pay shows up as some random Adjustment days later." },
+            { "type": "quote", "item_id": "T-1023", "quote": "Why can't the app show it's pending?" }
+          ]
+        }
+      ],
+      "root_cause": "Return pay is processed as a delayed, generically labeled \"Adjustment\" that is not linked to the trip and has no pending state in the courier app.",
+      "category": "product",
+      "status": "confirmed",
+      "confidence": "high",
+      "confidence_reason": "Agents explain the payment timing and label in three tickets, and couriers describe the same confusion in an app review.",
+      "open_questions": []
+    },
+    {
+      "problem_id": "P5",
+      "five_whys": [
+        {
+          "why": "Why do couriers go to the wrong place?",
+          "because": "The map location shown for the address is not where the building is.",
+          "evidence": [
+            { "type": "quote", "item_id": "T-1027", "quote": "Map pin for 1180 Harbor View Rd took me to a construction site about 400 m from the actual building." },
+            { "type": "quote", "item_id": "S-2104", "quote": "New neighborhoods are a nightmare, the pin is always off." }
+          ]
+        },
+        {
+          "why": "Why is the map location wrong?",
+          "because": "Not evidenced in the feedback. The only pattern is that every affected address is in a newly built development.",
+          "evidence": [
+            { "type": "quote", "item_id": "T-1028", "quote": "I live in the new Harbor View development." },
+            { "type": "quote", "item_id": "T-1029", "quote": "Addresses in the new Maple Ridge subdivision keep showing in the middle of a field on my map." },
+            { "type": "quote", "item_id": "S-2205", "quote": "Driver went to the wrong side of the new complex on Harbor View." }
+          ]
+        }
+      ],
+      "root_cause": "Map locations are wrong for addresses in newly built developments. The feedback does not show why.",
+      "category": "product",
+      "status": "needs_investigation",
+      "confidence": "low",
+      "confidence_reason": "The chain stops at Why 2: no item explains where the map location comes from.",
+      "open_questions": [
+        "Where does the drop-off map location come from: map provider data, merchant-supplied coordinates, or something else?",
+        "What did the mapping team find for the escalated addresses (T-1027, T-1029)?",
+        "How many deliveries to these developments had a location problem that was never reported?"
+      ]
+    },
+    {
+      "problem_id": "P6",
+      "five_whys": [
+        {
+          "why": "Why do couriers end up with orders they can't carry?",
+          "because": "The courier app does not show the order's size before the courier accepts it.",
+          "evidence": [
+            { "type": "quote", "item_id": "S-2103", "quote": "I accept an order and it's 8 bags of groceries or a stack of catering trays." },
+            { "type": "quote", "item_id": "R-3002", "quote": "you can't see the order size before accepting." },
+            { "type": "quote", "item_id": "R-3004", "quote": "Wish I could see how many items or bags before I accept." }
+          ]
+        }
+      ],
+      "root_cause": "The courier offer screen does not show order size (such as item or bag count) before acceptance, so couriers can't decline orders their vehicle can't carry.",
+      "category": "product",
+      "status": "confirmed",
+      "confidence": "medium",
+      "confidence_reason": "Three couriers describe it independently across two sources, but no agent or business context confirms what the offer screen shows.",
+      "open_questions": [
+        "Do merchants send item count or order size in the delivery request? If not, the fix also needs that data from merchants."
+      ]
+    }
+  ],
+  "solutions": [
+    {
+      "problem_id": "P1",
+      "product": [
+        {
+          "title": "Per-order \"ready\" signal in the Merchant Dashboard",
+          "description": "Let store staff mark an order as ready, or adjust its ready time, in the dashboard so dispatch can use it, without depending on POS support for ready_at.",
+          "addresses": "Why 4: the only per-order signal (ready_at) is optional and unavailable to some merchants",
+          "requested_in": ["S-2004", "T-1002"]
+        },
+        {
+          "title": "Prep time schedules",
+          "description": "Allow different prep times by time of day (e.g. lunch peak vs. afternoon) instead of one value per store.",
+          "addresses": "Why 3: prep time is a single value per store",
+          "requested_in": ["T-1007"]
+        },
+        {
+          "title": "Prep time accuracy alerts",
+          "description": "Use the recorded courier arrival and pickup times to flag stores whose prep time is consistently too short, and prompt them to update it.",
+          "addresses": "Why 3: prep time is set once and rarely updated",
+          "requested_in": []
+        }
+      ],
+      "operations": [
+        {
+          "title": "Add prep time to merchant onboarding",
+          "description": "Make setting a realistic prep time a required onboarding step, and explain how it controls courier arrival.",
+          "addresses": "Why 3: merchants aren't told about the setting at setup",
+          "requested_in": []
+        },
+        {
+          "title": "Outreach to stores with repeated long waits",
+          "description": "Contact stores named in repeated wait complaints (e.g. Golden Wok, Bella Pasta, Spice Route) to review their prep time.",
+          "addresses": "Why 2: prep time setting is shorter than real prep time",
+          "requested_in": []
+        },
+        {
+          "title": "POS partner enablement",
+          "description": "Work with POS partners whose integrations don't send ready_at (e.g. TillStack) to add support for it.",
+          "addresses": "Why 4: some integrations don't send ready_at",
+          "requested_in": []
+        }
+      ]
+    },
+    {
+      "problem_id": "P2",
+      "product": [
+        {
+          "title": "Show order notes to couriers",
+          "description": "Display order_notes in the courier app alongside drop-off instructions, or merge them, so consumer notes reach the courier whichever field is used.",
+          "addresses": "Why 2: courier app only displays dropoff_instructions",
+          "requested_in": ["T-1010"]
+        },
+        {
+          "title": "API warning for missing drop-off instructions",
+          "description": "Return a warning in the API response when order_notes is filled but dropoff_instructions is empty.",
+          "addresses": "Why 3: the API gives no warning",
+          "requested_in": ["T-1011"]
+        }
+      ],
+      "operations": [
+        {
+          "title": "Clarify the API docs",
+          "description": "State explicitly which fields couriers can see, and recommend dropoff_instructions for consumer notes.",
+          "addresses": "Why 3: the docs don't say order_notes is hidden from couriers",
+          "requested_in": ["T-1011", "S-2006"]
+        },
+        {
+          "title": "Integration audit and outreach",
+          "description": "Identify merchants who send notes in order_notes with no dropoff_instructions (e.g. Greenleaf Market, Pharmly Pharmacy, Urban Bakes) and contact their developers.",
+          "addresses": "Why 2: integrations use the wrong field",
+          "requested_in": []
+        }
+      ]
+    },
+    {
+      "problem_id": "P3",
+      "product": [
+        {
+          "title": "Itemized invoice lines",
+          "description": "Replace the generic \"Adjustment\" label with the fee type (e.g. \"Return fee\") and the related order ID on each line.",
+          "addresses": "Why 2: invoice labels every fee type as Adjustment with no order detail",
+          "requested_in": ["T-1019", "T-1020", "S-2002"]
+        },
+        {
+          "title": "Return notification",
+          "description": "Notify the merchant in the dashboard when an order is returned, and state that a return fee applies.",
+          "addresses": "Why 3: merchants only discover the fee on the invoice",
+          "requested_in": ["S-2003"]
+        }
+      ],
+      "operations": [
+        {
+          "title": "Document fees in the help center and onboarding",
+          "description": "Publish a help center article on the return fee and other invoice charges, and cover it during merchant onboarding.",
+          "addresses": "Why 3: the fee is documented only in the merchant terms",
+          "requested_in": []
+        }
+      ]
+    },
+    {
+      "problem_id": "P4",
+      "product": [
+        {
+          "title": "Pending return pay on the trip receipt",
+          "description": "Show \"Return pay pending\" with the expected payment date on the trip receipt as soon as a return is completed.",
+          "addresses": "Why 1: return pay doesn't appear on the trip receipt",
+          "requested_in": ["T-1023"]
+        },
+        {
+          "title": "Label and link return pay",
+          "description": "Label the payment \"Return pay\", link it to the trip, and attribute it to the week the trip happened.",
+          "addresses": "Why 2: paid later as a generic Adjustment, sometimes in a different week",
+          "requested_in": []
+        }
+      ],
+      "operations": [
+        {
+          "title": "Explain return pay to couriers",
+          "description": "Add return pay timing to courier help content and onboarding, and update support macros to match.",
+          "addresses": "Why 2: the app shows nothing while pay is pending",
+          "requested_in": []
+        }
+      ]
+    },
+    {
+      "problem_id": "P5",
+      "product": [
+        {
+          "title": "Interim: courier location reports",
+          "description": "Let couriers flag a wrong map pin from the app so that affected addresses are collected for the investigation.",
+          "addresses": "Interim mitigation while the cause behind Why 2 is investigated",
+          "requested_in": []
+        }
+      ],
+      "operations": [
+        {
+          "title": "Trace the source of map locations",
+          "description": "For the escalated addresses, determine where the drop-off location came from and why it differs from the building.",
+          "addresses": "Open question: why is the map location wrong?",
+          "requested_in": []
+        },
+        {
+          "title": "Size the problem",
+          "description": "Measure delivery issues for addresses in the named developments, including ones that were never reported.",
+          "addresses": "Open question: how widespread is this?",
+          "requested_in": []
+        }
+      ]
+    },
+    {
+      "problem_id": "P6",
+      "product": [
+        {
+          "title": "Show order size on the offer",
+          "description": "Show item or bag count, or a size category (e.g. standard, large, catering), on the offer screen before the courier accepts.",
+          "addresses": "Why 1: the offer screen doesn't show order size",
+          "requested_in": ["S-2103", "R-3002", "R-3004"]
+        }
+      ],
+      "operations": [
+        {
+          "title": "Check available order-size data",
+          "description": "Confirm whether merchants already send item counts in delivery requests, and if not, ask high-volume grocery and catering merchants to include them.",
+          "addresses": "Open question: do merchants send order size?",
+          "requested_in": []
+        }
+      ]
+    }
+  ]
+}
