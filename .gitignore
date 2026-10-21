@@ -1,0 +1,9 @@
+# Keep real ticket data and reports out of the repo.
+# Put your own files in data/ or outputs/. Only examples/ is meant to be public.
+data/
+outputs/
+*.local.*
+report.json
+
+.DS_Store
+.env
